@@ -536,6 +536,19 @@
             return 'grade-undefined';
         }
 
+        function formatMark(grade) {
+            if (!grade) return '—';
+            const g = grade.toUpperCase();
+            if (g === 'ECTS-A') return 'A (отлично)';
+            if (g === 'ECTS-B') return 'B (хорошо)';
+            if (g === 'ECTS-C') return 'C (хорошо)';
+            if (g === 'ECTS-D') return 'D (удовлетворительно)';
+            if (g === 'ECTS-E') return 'E (удовлетворительно)';
+            if (g === 'ECTS-F') return 'F (неудовлетворительно)';
+            if (g === 'UNDEFINED') return 'не определено';
+            return grade;
+        }
+
         function storageGet() {
             return {
                 t: localStorage.getItem('grade_token') || '',
@@ -584,6 +597,17 @@
             return json?.response || null;
         }
 
+        function translateType(type) {
+            const map = {
+                'exam': 'экзамен',
+                'credit': 'зачёт',
+                'test': 'тест',
+                'difftest': 'диф. зачёт',
+                'coursework': 'курсовая'
+            };
+            return map[type?.toLowerCase()] || type || '';
+        }
+
         function renderDisciplines() {
             const { marks, teachers, disciplines } = currentData;
             
@@ -596,13 +620,16 @@
                 const id = d.ID;
                 const mark = marks[String(id)] ?? marks[id] ?? '';
                 const gradeClass = getGradeClass(mark);
+                const rate = d.Rate ?? '-';
+                const maxRate = d.MaxCurrentRate ?? '-';
                 
                 return `
                     <div class="disc-item ${selectedDisciplineId === id ? 'active' : ''}" data-id="${id}">
                         <div class="disc-name">${escapeHtml(d.SubjectName || '')}</div>
                         <div class="disc-meta">
-                            <span>${escapeHtml(d.Type || '')}</span>
-                            ${mark ? `<span class="disc-grade ${gradeClass}">${escapeHtml(mark)}</span>` : ''}
+                            <span>${translateType(d.Type)}</span>
+                            <span>${rate}${maxRate !== '-' ? '/' + maxRate : ''}</span>
+                            ${mark ? `<span class="disc-grade ${gradeClass}">${formatMark(mark)}</span>` : ''}
                         </div>
                     </div>
                 `;
@@ -646,15 +673,18 @@
             const disc = data.Discipline || {};
             const mark = currentData.marks[selectedDisciplineId] || currentData.marks[String(selectedDisciplineId)] || '';
             const gradeClass = getGradeClass(mark);
+            const rate = disc.Rate ?? '-';
+            const maxRate = disc.MaxCurrentRate ?? '-';
 
             els.tabGrade.innerHTML = `
                 <div class="grade-big">
-                    <div class="grade-display ${gradeClass}">${escapeHtml(mark) || '—'}</div>
-                    <div class="grade-label">${disc.Type ? (disc.Type === 'exam' ? 'Экзамен' : disc.Type === 'test' ? 'Зачёт' : escapeHtml(disc.Type)) : 'Оценка'}</div>
+                    <div class="grade-display ${gradeClass}">${formatMark(mark)}</div>
+                    <div class="grade-label">${translateType(disc.Type)}</div>
                 </div>
                 <div class="detail-info">
                     <div class="info-row"><span class="info-label">Дисциплина</span><span>${escapeHtml(disc.SubjectName || '')}</span></div>
-                    <div class="info-row"><span class="info-label">Тип</span><span>${escapeHtml(disc.Type || '')}</span></div>
+                    <div class="info-row"><span class="info-label">Тип</span><span>${translateType(disc.Type)}</span></div>
+                    <div class="info-row"><span class="info-label">Баллы</span><span>${rate}${maxRate !== '-' ? ' / ' + maxRate : ''}</span></div>
                 </div>
             `;
         }
