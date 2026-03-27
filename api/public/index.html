@@ -1,0 +1,468 @@
+<!doctype html>
+<html lang="ru">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Grades — Student</title>
+    <style>
+        :root {
+            --bg: #0b1220;
+            --card: #121a2b;
+            --text: #e7eefc;
+            --muted: #9fb0d0;
+            --accent: #6ea8fe;
+            --danger: #ffb4b4;
+            --ok: #b8ffd7;
+            --line: rgba(255, 255, 255, .09);
+        }
+
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+            background: radial-gradient(1200px 600px at 20% 10%, #17264a, var(--bg));
+            color: var(--text);
+        }
+
+        .wrap {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 22px 14px;
+        }
+
+        .grid {
+            display: grid;
+            gap: 14px;
+        }
+
+        .card {
+            background: rgba(18, 26, 43, .86);
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            padding: 14px;
+            backdrop-filter: blur(10px);
+        }
+
+        h1 {
+            margin: 0 0 6px;
+            font-size: 20px;
+        }
+
+        .muted {
+            color: var(--muted);
+        }
+
+        .row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center
+        }
+
+        input,
+        select {
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, .14);
+            background: #0f1729;
+            color: var(--text);
+            outline: none
+        }
+
+        input {
+            min-width: 260px;
+            flex: 1
+        }
+
+        button {
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, .14);
+            background: #1a2a52;
+            color: var(--text);
+            cursor: pointer
+        }
+
+        button:hover {
+            border-color: rgba(110, 168, 254, .55)
+        }
+
+        .right {
+            margin-left: auto
+        }
+
+        .pill {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 999px;
+            background: rgba(110, 168, 254, .12);
+            border: 1px solid rgba(110, 168, 254, .30)
+        }
+
+        .error {
+            color: var(--danger)
+        }
+
+        .ok {
+            color: var(--ok)
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px
+        }
+
+        th,
+        td {
+            padding: 10px 8px;
+            border-bottom: 1px solid var(--line);
+            text-align: left;
+            vertical-align: top
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, .03)
+        }
+
+        a {
+            color: var(--accent);
+            text-decoration: none
+        }
+
+        a:hover {
+            text-decoration: underline
+        }
+
+        .two {
+            display: grid;
+            grid-template-columns: 1.3fr .7fr;
+            gap: 14px
+        }
+
+        @media (max-width: 920px) {
+            .two {
+                grid-template-columns: 1fr
+            }
+        }
+
+        pre {
+            white-space: pre-wrap;
+            word-break: break-word;
+            background: #0f1729;
+            border: 1px solid var(--line);
+            padding: 10px;
+            border-radius: 12px;
+            margin: 10px 0 0
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrap">
+        <div class="grid">
+            <div class="card">
+                <h1>Grades (Student)</h1>
+                <div class="muted">
+                    Вход через токен. Получить токен можно на официальном сайте:
+                    <a href="https://grade.sfedu.ru/sign?goal=/student/authtokenget" target="_blank"
+                        rel="noreferrer">grade.sfedu.ru → authtokenget</a>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="row">
+                    <input id="token" placeholder="Вставь token (40 символов hex)" />
+                    <label class="muted" style="display:flex;gap:8px;align-items:center">
+                        <input id="remember" type="checkbox" />
+                        запомнить
+                    </label>
+                    <button id="btnSave">Сохранить</button>
+                    <button id="btnClear" class="right">Выйти</button>
+                </div>
+                <div id="status" class="muted" style="margin-top:10px;"></div>
+            </div>
+
+            <div class="two">
+                <div class="card">
+                    <div class="row">
+                        <div class="pill">Дисциплины</div>
+                        <select id="semester"></select>
+                        <button id="btnReload" class="right">Обновить</button>
+                    </div>
+                    <div id="disciplines" class="muted" style="margin-top:10px;">Сохрани token и нажми “Обновить”.</div>
+                </div>
+
+                <div class="card">
+                    <div class="row">
+                        <div class="pill">Журнал</div>
+                        <div class="muted right" id="journalTitle"></div>
+                    </div>
+                    <div id="journal" class="muted" style="margin-top:10px;">Выбери дисциплину слева.</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="pill">Debug (ответы API)</div>
+                <pre id="debug"></pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const els = {
+            token: document.getElementById('token'),
+            remember: document.getElementById('remember'),
+            btnSave: document.getElementById('btnSave'),
+            btnClear: document.getElementById('btnClear'),
+            btnReload: document.getElementById('btnReload'),
+            semester: document.getElementById('semester'),
+            status: document.getElementById('status'),
+            disciplines: document.getElementById('disciplines'),
+            journal: document.getElementById('journal'),
+            journalTitle: document.getElementById('journalTitle'),
+            debug: document.getElementById('debug'),
+        };
+
+        function setStatus(text, kind = 'muted') { els.status.className = kind; els.status.textContent = text; }
+        function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+        function storageGet() {
+            const t = localStorage.getItem('grade_token') || '';
+            const r = localStorage.getItem('grade_remember') === '1';
+            return { t, r };
+        }
+        function storageSet(token, remember) {
+            localStorage.setItem('grade_remember', remember ? '1' : '0');
+            if (remember) localStorage.setItem('grade_token', token);
+            else localStorage.removeItem('grade_token');
+        }
+        function storageClear() {
+            localStorage.removeItem('grade_token');
+            localStorage.removeItem('grade_remember');
+        }
+
+        function normalizeTeachers(value) {
+            // value может быть:
+            // - Array<TeacherElement>
+            // - Object with numeric keys -> TeacherElement
+            if (!value) return [];
+            if (Array.isArray(value)) return value;
+            if (typeof value === 'object') return Object.values(value);
+            return [];
+        }
+
+        async function apiGet(path) {
+            const res = await fetch(path);
+            const text = await res.text();
+            let json = null;
+            try { json = JSON.parse(text); } catch { }
+            return { res, text, json };
+        }
+
+        function getCurrentToken() {
+            const remember = els.remember.checked;
+            const token = els.token.value.trim();
+            if (remember) return token;
+            // если не remember, всё равно можно пользоваться введённым токеном (не сохраняя)
+            return token;
+        }
+
+        async function loadSemesters(token) {
+            const { res, text, json } = await apiGet('/api/student/semester_list?token=' + encodeURIComponent(token));
+            els.debug.textContent = text;
+
+            if (!res.ok || !json?.response) throw new Error(json?.message || ('HTTP ' + res.status));
+
+            // response: { "33": {ID...}, "30": {...} }
+            const map = json.response;
+            const list = Object.values(map).sort((a, b) => (b.ID ?? 0) - (a.ID ?? 0));
+
+            els.semester.innerHTML = list.map(s =>
+                `<option value="${escapeHtml(s.ID)}">${escapeHtml(semesterLabel(s))}</option>`
+            ).join('');
+
+            return list;
+        }
+
+        function semesterLabel(s) {
+            // по твоему ответу есть: Year, Num, Season, CalendarYear
+            // Сделаем читабельно:
+            const num = s.Num;
+            const year = s.CalendarYear ?? s.Year;
+            const season = s.Season || '';
+            const seasonRu = season === 'spring' ? 'Весна' : season === 'autumn' ? 'Осень' : season;
+            return `${seasonRu} ${year} (ID ${s.ID})`;
+        }
+
+        async function loadIndex(token, semesterID) {
+            const qs = new URLSearchParams({ token });
+            if (semesterID) qs.set('SemesterID', String(semesterID));
+
+            const { res, text, json } = await apiGet('/api/student/index?' + qs.toString());
+            els.debug.textContent = text;
+
+            if (!res.ok || !json?.response) throw new Error(json?.message || ('HTTP ' + res.status));
+            return json.response;
+        }
+
+        function renderDisciplines(index) {
+            const discs = Array.isArray(index.Disciplines) ? index.Disciplines : [];
+            const marks = index.Marks || {};
+            const teachersMap = index.Teachers || {};
+
+            if (!discs.length) {
+                els.disciplines.textContent = 'Нет дисциплин или формат ответа изменился.';
+                return;
+            }
+
+            const rows = discs.map(d => {
+                const id = d.ID;
+                const mark = marks[String(id)] ?? marks[id] ?? '';
+                const teacherList = normalizeTeachers(teachersMap[String(id)] ?? teachersMap[id]);
+                const teacherNames = teacherList.map(t => `${t.LastName} ${t.FirstName?.[0] || ''}.${t.SecondName?.[0] || ''}.`.replace('..', '.')).join(', ');
+
+                return `
+        <tr data-id="${escapeHtml(id)}" style="cursor:pointer">
+          <td>
+            <b>${escapeHtml(d.SubjectName || '')}</b>
+            <div class="muted">${escapeHtml(d.Type || '')} • SemesterID: ${escapeHtml(d.SemesterID ?? '')}</div>
+          </td>
+          <td>${escapeHtml(teacherNames || `${d.LastName || ''} ${d.FirstName || ''} ${d.SecondName || ''}`.trim())}</td>
+          <td><b>${escapeHtml(mark)}</b></td>
+        </tr>
+      `;
+            }).join('');
+
+            els.disciplines.innerHTML = `
+      <table>
+        <thead><tr><th>Дисциплина</th><th>Преподаватели</th><th>Оценка</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div class="muted" style="margin-top:8px;">Кликни по дисциплине, чтобы загрузить журнал.</div>
+    `;
+
+            els.disciplines.querySelectorAll('tr[data-id]').forEach(tr => {
+                tr.addEventListener('click', () => loadJournal(tr.getAttribute('data-id')));
+            });
+        }
+
+        async function loadJournal(disciplineId) {
+            const token = getCurrentToken();
+            if (!token) return;
+
+            setStatus('Загружаю журнал...', 'muted');
+            els.journalTitle.textContent = `ID ${disciplineId}`;
+            els.journal.textContent = 'Загрузка...';
+            els.debug.textContent = '';
+
+            const qs = new URLSearchParams({ token, id: disciplineId });
+            const { res, text, json } = await apiGet('/api/student/discipline/journal?' + qs.toString());
+            els.debug.textContent = text;
+
+            if (!res.ok || !json?.response) {
+                setStatus('Ошибка загрузки журнала', 'error');
+                els.journal.textContent = 'Ошибка.';
+                return;
+            }
+
+            const r = json.response;
+            const discName = r.Discipline?.SubjectName || `ID ${disciplineId}`;
+            els.journalTitle.textContent = discName;
+
+            const journal = Array.isArray(r.Journal) ? r.Journal : [];
+            if (!journal.length) {
+                els.journal.innerHTML = `<div class="muted">Записей в журнале нет (или они не возвращаются для этой дисциплины).</div>`;
+                setStatus('Готово.', 'ok');
+                return;
+            }
+
+            const rows = journal.map(j => {
+                const date = j.LessonDate ? new Date(j.LessonDate).toLocaleDateString('ru-RU') : '';
+                const attended = j.Attended ? '+' : '-';
+                return `<tr><td>${escapeHtml(date)}</td><td>${escapeHtml(j.LessonType || '')}</td><td><b>${escapeHtml(attended)}</b></td></tr>`;
+            }).join('');
+
+            els.journal.innerHTML = `
+      <table>
+        <thead><tr><th>Дата</th><th>Тип</th><th>Посещение</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `;
+
+            setStatus('Готово.', 'ok');
+        }
+
+        async function reloadAll() {
+            const token = getCurrentToken();
+            if (!token) {
+                setStatus('Вставь token (40 символов).', 'error');
+                return;
+            }
+            if (!/^[0-9a-f]{40}$/i.test(token)) {
+                setStatus('Похоже, token не из 40 hex символов.', 'error');
+                return;
+            }
+
+            try {
+                setStatus('Загружаю список семестров...', 'muted');
+                await loadSemesters(token);
+
+                const semesterID = els.semester.value;
+                setStatus('Загружаю дисциплины...', 'muted');
+                const index = await loadIndex(token, semesterID);
+                renderDisciplines(index);
+
+                setStatus('Готово. Выбери дисциплину, чтобы открыть журнал.', 'ok');
+            } catch (e) {
+                setStatus('Ошибка: ' + e.message, 'error');
+            }
+        }
+
+        // buttons
+        els.btnSave.addEventListener('click', () => {
+            const token = els.token.value.trim();
+            const remember = els.remember.checked;
+
+            if (!token) {
+                setStatus('Вставь token.', 'error');
+                return;
+            }
+            if (!/^[0-9a-f]{40}$/i.test(token)) {
+                setStatus('Token должен быть 40 hex символов.', 'error');
+                return;
+            }
+
+            storageSet(token, remember);
+            setStatus(remember ? 'Token сохранён на этом устройстве.' : 'Token не сохранён (режим без запоминания).', 'ok');
+        });
+
+        els.btnClear.addEventListener('click', () => {
+            storageClear();
+            els.token.value = '';
+            els.remember.checked = false;
+            els.semester.innerHTML = '';
+            els.disciplines.textContent = 'Сохрани token и нажми “Обновить”.';
+            els.journal.textContent = 'Выбери дисциплину слева.';
+            els.journalTitle.textContent = '';
+            els.debug.textContent = '';
+            setStatus('Вышли. Token удалён.', 'muted');
+        });
+
+        els.btnReload.addEventListener('click', reloadAll);
+
+        // init from storage
+        const init = storageGet();
+        els.remember.checked = init.r;
+        if (init.r && init.t) {
+            els.token.value = init.t;
+            setStatus('Token подхвачен из памяти. Нажми “Обн��вить”.', 'muted');
+        } else {
+            setStatus('Вставь token. Можно включить “запомнить”.', 'muted');
+        }
+        // populate semester select placeholder
+        els.semester.innerHTML = `<option value="">(семестр не выбран)</option>`;
+    </script>
+</body>
+
+</html>
