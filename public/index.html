@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Grades — Student</title>
+    <title>Оценки — Student</title>
     <style>
         :root {
             --bg: #0b1220;
@@ -15,198 +15,486 @@
             --danger: #ffb4b4;
             --ok: #b8ffd7;
             --line: rgba(255, 255, 255, .09);
+            --grade-a: #4ade80;
+            --grade-b: #86efac;
+            --grade-c: #fde047;
+            --grade-d: #fb923c;
+            --grade-f: #f87171;
         }
+
+        * { box-sizing: border-box; }
 
         body {
             margin: 0;
             font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
             background: radial-gradient(1200px 600px at 20% 10%, #17264a, var(--bg));
             color: var(--text);
+            min-height: 100vh;
         }
 
         .wrap {
-            max-width: 1100px;
+            max-width: 1200px;
             margin: 0 auto;
-            padding: 22px 14px;
+            padding: 20px 16px;
         }
 
-        .grid {
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .header a {
+            color: var(--accent);
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .header a:hover { text-decoration: underline; }
+
+        .token-box {
+            background: rgba(18, 26, 43, .86);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .token-box input {
+            flex: 1;
+            min-width: 200px;
+            padding: 10px 14px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, .14);
+            background: #0f1729;
+            color: var(--text);
+            font-size: 14px;
+            outline: none;
+            font-family: monospace;
+        }
+
+        .token-box input:focus { border-color: var(--accent); }
+
+        .token-box label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--muted);
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .token-box button {
+            padding: 10px 18px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, .14);
+            background: #1a2a52;
+            color: var(--text);
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .token-box button:hover {
+            border-color: var(--accent);
+            background: #243a6b;
+        }
+
+        .token-box button.danger {
+            background: #3a1a1a;
+            border-color: #5a2a2a;
+        }
+
+        .token-box button.danger:hover {
+            background: #4a2020;
+            border-color: #ff6b6b;
+        }
+
+        #status {
+            width: 100%;
+            padding: 8px 0 0;
+            font-size: 13px;
+        }
+
+        #status.error { color: var(--danger); }
+        #status.ok { color: var(--ok); }
+
+        .main-grid {
             display: grid;
-            gap: 14px;
+            grid-template-columns: 1fr 400px;
+            gap: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .main-grid { grid-template-columns: 1fr; }
         }
 
         .card {
             background: rgba(18, 26, 43, .86);
             border: 1px solid var(--line);
-            border-radius: 16px;
-            padding: 14px;
-            backdrop-filter: blur(10px);
+            border-radius: 14px;
+            padding: 16px;
         }
 
-        h1 {
-            margin: 0 0 6px;
-            font-size: 20px;
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+            gap: 10px;
         }
 
-        .muted {
+        .card-header h2 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 500;
             color: var(--muted);
         }
 
-        .row {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            align-items: center
-        }
-
-        input,
         select {
-            padding: 10px 12px;
-            border-radius: 12px;
+            padding: 8px 12px;
+            border-radius: 8px;
             border: 1px solid rgba(255, 255, 255, .14);
             background: #0f1729;
             color: var(--text);
-            outline: none
+            font-size: 14px;
+            outline: none;
+            cursor: pointer;
         }
 
-        input {
-            min-width: 260px;
-            flex: 1
+        select:focus { border-color: var(--accent); }
+
+        .disc-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
         }
 
-        button {
-            padding: 10px 12px;
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, .14);
+        .disc-item {
+            background: rgba(15, 23, 41, 0.6);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .disc-item:hover {
+            border-color: var(--accent);
+            background: rgba(26, 42, 82, 0.6);
+        }
+
+        .disc-item.active {
+            border-color: var(--accent);
+            background: rgba(26, 42, 82, 0.8);
+        }
+
+        .disc-name {
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .disc-meta {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .disc-grade {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .grade-ects-a { background: rgba(74, 222, 128, .2); color: var(--grade-a); }
+        .grade-ects-b { background: rgba(134, 239, 172, .2); color: var(--grade-b); }
+        .grade-ects-c { background: rgba(253, 224, 71, .2); color: var(--grade-c); }
+        .grade-ects-d { background: rgba(251, 146, 60, .2); color: var(--grade-d); }
+        .grade-ects-f { background: rgba(248, 113, 113, .2); color: var(--grade-f); }
+        .grade-undefined { background: rgba(159, 176, 208, .2); color: var(--muted); }
+
+        .detail-panel {
+            position: sticky;
+            top: 20px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 14px;
+            background: #0f1729;
+            padding: 4px;
+            border-radius: 10px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 8px 12px;
+            border: none;
+            background: transparent;
+            color: var(--muted);
+            font-size: 13px;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .tab:hover { color: var(--text); }
+
+        .tab.active {
             background: #1a2a52;
             color: var(--text);
-            cursor: pointer
         }
 
-        button:hover {
-            border-color: rgba(110, 168, 254, .55)
+        .tab-content {
+            display: none;
         }
 
-        .right {
-            margin-left: auto
+        .tab-content.active { display: block; }
+
+        .detail-empty {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--muted);
         }
 
-        .pill {
-            display: inline-block;
-            padding: 3px 10px;
-            border-radius: 999px;
-            background: rgba(110, 168, 254, .12);
-            border: 1px solid rgba(110, 168, 254, .30)
+        .detail-info {
+            margin-bottom: 16px;
         }
 
-        .error {
-            color: var(--danger)
+        .detail-info h3 {
+            margin: 0 0 8px;
+            font-size: 18px;
+            font-weight: 500;
         }
 
-        .ok {
-            color: var(--ok)
+        .info-row {
+            display: flex;
+            gap: 8px;
+            padding: 6px 0;
+            border-bottom: 1px solid var(--line);
+            font-size: 14px;
         }
 
-        table {
+        .info-label {
+            color: var(--muted);
+            min-width: 100px;
+        }
+
+        .teacher-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .teacher-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: rgba(15, 23, 41, 0.6);
+            border-radius: 8px;
+        }
+
+        .teacher-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #1a2a52;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--accent);
+        }
+
+        .teacher-info { flex: 1; }
+
+        .teacher-name {
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .teacher-pos {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .teacher-author {
+            font-size: 11px;
+            padding: 2px 8px;
+            background: rgba(110, 168, 254, .2);
+            border-radius: 10px;
+            color: var(--accent);
+        }
+
+        .journal-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px
         }
 
-        th,
-        td {
+        .journal-table th,
+        .journal-table td {
             padding: 10px 8px;
-            border-bottom: 1px solid var(--line);
             text-align: left;
-            vertical-align: top
+            border-bottom: 1px solid var(--line);
+            font-size: 13px;
         }
 
-        tr:hover td {
-            background: rgba(255, 255, 255, .03)
+        .journal-table th {
+            color: var(--muted);
+            font-weight: 500;
         }
 
-        a {
-            color: var(--accent);
-            text-decoration: none
+        .journal-table tr:hover td {
+            background: rgba(255, 255, 255, .02);
         }
 
-        a:hover {
-            text-decoration: underline
+        .attended { color: var(--ok); }
+        .missed { color: var(--danger); }
+
+        .grade-big {
+            text-align: center;
+            padding: 30px;
         }
 
-        .two {
-            display: grid;
-            grid-template-columns: 1.3fr .7fr;
-            gap: 14px
+        .grade-big .grade-display {
+            font-size: 48px;
+            font-weight: 700;
+            margin-bottom: 8px;
         }
 
-        @media (max-width: 920px) {
-            .two {
-                grid-template-columns: 1fr
-            }
+        .grade-big .grade-label {
+            color: var(--muted);
+            font-size: 14px;
         }
 
-        pre {
+        .loading {
+            text-align: center;
+            padding: 30px;
+            color: var(--muted);
+        }
+
+        .spinner {
+            width: 24px;
+            height: 24px;
+            border: 2px solid var(--line);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .debug-card {
+            margin-top: 20px;
+        }
+
+        .debug-card summary {
+            cursor: pointer;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .debug-card pre {
             white-space: pre-wrap;
             word-break: break-word;
             background: #0f1729;
             border: 1px solid var(--line);
-            padding: 10px;
-            border-radius: 12px;
-            margin: 10px 0 0
+            padding: 12px;
+            border-radius: 8px;
+            margin: 10px 0 0;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
         }
     </style>
 </head>
 
 <body>
     <div class="wrap">
-        <div class="grid">
-            <div class="card">
-                <h1>Grades (Student)</h1>
-                <div class="muted">
-                    Вход через токен. Получить токен можно на официальном сайте:
-                    <a href="https://grade.sfedu.ru/sign?goal=/student/authtokenget" target="_blank"
-                        rel="noreferrer">grade.sfedu.ru → authtokenget</a>
-                </div>
-            </div>
+        <div class="header">
+            <h1>Оценки</h1>
+            <a href="https://grade.sfedu.ru/sign?goal=/student/authtokenget" target="_blank" rel="noreferrer">
+                получить токен
+            </a>
+        </div>
 
-            <div class="card">
-                <div class="row">
-                    <input id="token" placeholder="Вставь token (40 символов hex)" />
-                    <label class="muted" style="display:flex;gap:8px;align-items:center">
-                        <input id="remember" type="checkbox" />
-                        запомнить
-                    </label>
-                    <button id="btnSave">Сохранить</button>
-                    <button id="btnClear" class="right">Выйти</button>
-                </div>
-                <div id="status" class="muted" style="margin-top:10px;"></div>
-            </div>
+        <div class="token-box">
+            <input id="token" placeholder="Вставь token (40 символов hex)" />
+            <label>
+                <input id="remember" type="checkbox" />
+                запомнить
+            </label>
+            <button id="btnSave">Сохранить</button>
+            <button id="btnClear" class="danger">Выйти</button>
+            <div id="status"></div>
+        </div>
 
-            <div class="two">
+        <div class="main-grid">
+            <div class="left-col">
                 <div class="card">
-                    <div class="row">
-                        <div class="pill">Дисциплины</div>
-                        <select id="semester"></select>
-                        <button id="btnReload" class="right">Обновить</button>
+                    <div class="card-header">
+                        <h2>Дисциплины</h2>
+                        <div style="display:flex;gap:10px;align-items:center">
+                            <select id="semester"></select>
+                            <button id="btnReload">Обновить</button>
+                        </div>
                     </div>
-                    <div id="disciplines" class="muted" style="margin-top:10px;">Сохрани token и нажми "Обновить".</div>
-                </div>
-
-                <div class="card">
-                    <div class="row">
-                        <div class="pill">Журнал</div>
-                        <div class="muted right" id="journalTitle"></div>
+                    <div id="disciplines" class="disc-list">
+                        <div class="detail-empty">Сохрани token и нажми "Обновить"</div>
                     </div>
-                    <div id="journal" class="muted" style="margin-top:10px;">Выбери дисциплину слева.</div>
                 </div>
             </div>
 
-            <div class="card">
-                <div class="pill">Debug (ответы API)</div>
-                <pre id="debug"></pre>
+            <div class="right-col">
+                <div class="card detail-panel">
+                    <div class="tabs">
+                        <button class="tab active" data-tab="grade">Оценка</button>
+                        <button class="tab" data-tab="journal">Посещения</button>
+                        <button class="tab" data-tab="teachers">Преподаватели</button>
+                    </div>
+
+                    <div id="tab-grade" class="tab-content active">
+                        <div class="detail-empty">Выбери дисциплину</div>
+                    </div>
+
+                    <div id="tab-journal" class="tab-content">
+                        <div class="detail-empty">Выбери дисциплину</div>
+                    </div>
+
+                    <div id="tab-teachers" class="tab-content">
+                        <div class="detail-empty">Выбери дисциплину</div>
+                    </div>
+                </div>
             </div>
         </div>
+
+        <details class="card debug-card">
+            <summary>Debug (ответы API)</summary>
+            <pre id="debug"></pre>
+        </details>
     </div>
 
     <script>
@@ -219,34 +507,51 @@
             semester: document.getElementById('semester'),
             status: document.getElementById('status'),
             disciplines: document.getElementById('disciplines'),
-            journal: document.getElementById('journal'),
-            journalTitle: document.getElementById('journalTitle'),
+            tabGrade: document.getElementById('tab-grade'),
+            tabJournal: document.getElementById('tab-journal'),
+            tabTeachers: document.getElementById('tab-teachers'),
             debug: document.getElementById('debug'),
         };
 
-        function setStatus(text, kind = 'muted') { els.status.className = kind; els.status.textContent = text; }
-        function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+        let currentData = { marks: {}, teachers: {}, disciplines: [] };
+        let selectedDisciplineId = null;
+
+        function setStatus(text, kind = '') {
+            els.status.textContent = text;
+            els.status.className = kind;
+        }
+
+        function escapeHtml(s) {
+            return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+
+        function getGradeClass(grade) {
+            if (!grade) return 'grade-undefined';
+            const g = grade.toUpperCase();
+            if (g.includes('A')) return 'grade-ects-a';
+            if (g.includes('B')) return 'grade-ects-b';
+            if (g.includes('C')) return 'grade-ects-c';
+            if (g.includes('D')) return 'grade-ects-d';
+            if (g.includes('F') || g === 'UNDEFINED') return 'grade-ects-f';
+            return 'grade-undefined';
+        }
 
         function storageGet() {
-            const t = localStorage.getItem('grade_token') || '';
-            const r = localStorage.getItem('grade_remember') === '1';
-            return { t, r };
+            return {
+                t: localStorage.getItem('grade_token') || '',
+                r: localStorage.getItem('grade_remember') === '1'
+            };
         }
+
         function storageSet(token, remember) {
             localStorage.setItem('grade_remember', remember ? '1' : '0');
             if (remember) localStorage.setItem('grade_token', token);
             else localStorage.removeItem('grade_token');
         }
+
         function storageClear() {
             localStorage.removeItem('grade_token');
             localStorage.removeItem('grade_remember');
-        }
-
-        function normalizeTeachers(value) {
-            if (!value) return [];
-            if (Array.isArray(value)) return value;
-            if (typeof value === 'object') return Object.values(value);
-            return [];
         }
 
         async function apiGet(path) {
@@ -258,155 +563,188 @@
         }
 
         function getCurrentToken() {
-            const remember = els.remember.checked;
-            const token = els.token.value.trim();
-            if (remember) return token;
-            return token;
+            return els.remember.checked ? els.token.value.trim() : els.token.value.trim();
         }
 
         async function loadSemesters(token) {
-            const { res, text, json } = await apiGet('/api/student/semester_list?token=' + encodeURIComponent(token));
-            els.debug.textContent = text;
-
-            if (!res.ok || !json?.response) throw new Error(json?.message || ('HTTP ' + res.status));
-
-            const map = json.response;
+            const { json } = await apiGet('/api/student/semester_list?token=' + encodeURIComponent(token));
+            const map = json?.response || {};
             const list = Object.values(map).sort((a, b) => (b.ID ?? 0) - (a.ID ?? 0));
-
-            els.semester.innerHTML = list.map(s =>
-                `<option value="${escapeHtml(s.ID)}">${escapeHtml(semesterLabel(s))}</option>`
-            ).join('');
-
+            els.semester.innerHTML = list.map(s => {
+                const seasonRu = s.Season === 'spring' ? 'Весна' : s.Season === 'autumn' ? 'Осень' : '';
+                return `<option value="${s.ID}">${seasonRu} ${s.CalendarYear || s.Year}</option>`;
+            }).join('');
             return list;
-        }
-
-        function semesterLabel(s) {
-            const num = s.Num;
-            const year = s.CalendarYear ?? s.Year;
-            const season = s.Season || '';
-            const seasonRu = season === 'spring' ? 'Весна' : season === 'autumn' ? 'Осень' : season;
-            return `${seasonRu} ${year} (ID ${s.ID})`;
         }
 
         async function loadIndex(token, semesterID) {
             const qs = new URLSearchParams({ token });
             if (semesterID) qs.set('SemesterID', String(semesterID));
-
-            const { res, text, json } = await apiGet('/api/student/index?' + qs.toString());
-            els.debug.textContent = text;
-
-            if (!res.ok || !json?.response) throw new Error(json?.message || ('HTTP ' + res.status));
-            return json.response;
+            const { json } = await apiGet('/api/student/index?' + qs.toString());
+            return json?.response || null;
         }
 
-        function renderDisciplines(index) {
-            const discs = Array.isArray(index.Disciplines) ? index.Disciplines : [];
-            const marks = index.Marks || {};
-            const teachersMap = index.Teachers || {};
-
-            if (!discs.length) {
-                els.disciplines.textContent = 'Нет дисциплин или формат ответа изменился.';
+        function renderDisciplines() {
+            const { marks, teachers, disciplines } = currentData;
+            
+            if (!disciplines.length) {
+                els.disciplines.innerHTML = '<div class="detail-empty">Нет дисциплин</div>';
                 return;
             }
 
-            const rows = discs.map(d => {
+            els.disciplines.innerHTML = disciplines.map(d => {
                 const id = d.ID;
                 const mark = marks[String(id)] ?? marks[id] ?? '';
-                const teacherList = normalizeTeachers(teachersMap[String(id)] ?? teachersMap[id]);
-                const teacherNames = teacherList.map(t => `${t.LastName} ${t.FirstName?.[0] || ''}.${t.SecondName?.[0] || ''}.`.replace('..', '.')).join(', ');
-
+                const gradeClass = getGradeClass(mark);
+                
                 return `
-        <tr data-id="${escapeHtml(id)}" style="cursor:pointer">
-          <td>
-            <b>${escapeHtml(d.SubjectName || '')}</b>
-            <div class="muted">${escapeHtml(d.Type || '')} • SemesterID: ${escapeHtml(d.SemesterID ?? '')}</div>
-          </td>
-          <td>${escapeHtml(teacherNames || `${d.LastName || ''} ${d.FirstName || ''} ${d.SecondName || ''}`.trim())}</td>
-          <td><b>${escapeHtml(mark)}</b></td>
-        </tr>
-      `;
+                    <div class="disc-item ${selectedDisciplineId === id ? 'active' : ''}" data-id="${id}">
+                        <div class="disc-name">${escapeHtml(d.SubjectName || '')}</div>
+                        <div class="disc-meta">
+                            <span>${escapeHtml(d.Type || '')}</span>
+                            ${mark ? `<span class="disc-grade ${gradeClass}">${escapeHtml(mark)}</span>` : ''}
+                        </div>
+                    </div>
+                `;
             }).join('');
 
-            els.disciplines.innerHTML = `
-      <table>
-        <thead><tr><th>Дисциплина</th><th>Преподаватели</th><th>Оценка</th></tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-      <div class="muted" style="margin-top:8px;">Кликни по дисциплине, чтобы загрузить журнал.</div>
-    `;
-
-            els.disciplines.querySelectorAll('tr[data-id]').forEach(tr => {
-                tr.addEventListener('click', () => loadJournal(tr.getAttribute('data-id')));
+            els.disciplines.querySelectorAll('.disc-item').forEach(item => {
+                item.addEventListener('click', () => selectDiscipline(item.dataset.id));
             });
         }
 
-        async function loadJournal(disciplineId) {
+        async function selectDiscipline(id) {
+            id = String(id);
+            selectedDisciplineId = id;
+            
+            document.querySelectorAll('.disc-item').forEach(el => {
+                el.classList.toggle('active', el.dataset.id === id);
+            });
+
             const token = getCurrentToken();
             if (!token) return;
 
-            setStatus('Загружаю журнал...', 'muted');
-            els.journalTitle.textContent = `ID ${disciplineId}`;
-            els.journal.textContent = 'Загрузка...';
-            els.debug.textContent = '';
+            els.tabGrade.innerHTML = '<div class="loading"><div class="spinner"></div>Загрузка...</div>';
+            els.tabJournal.innerHTML = '<div class="loading"><div class="spinner"></div>Загрузка...</div>';
+            els.tabTeachers.innerHTML = '<div class="loading"><div class="spinner"></div>Загрузка...</div>';
 
-            const qs = new URLSearchParams({ token, id: disciplineId });
-            const { res, text, json } = await apiGet('/api/student/discipline/journal?' + qs.toString());
-            els.debug.textContent = text;
+            try {
+                const { json } = await apiGet(`/api/student/discipline/journal?token=${encodeURIComponent(token)}&id=${encodeURIComponent(id)}`);
+                const data = json?.response || {};
 
-            if (!res.ok || !json?.response) {
-                setStatus('Ошибка загрузки журнала', 'error');
-                els.journal.textContent = 'Ошибка.';
-                return;
+                renderGradeTab(data);
+                renderJournalTab(data);
+                renderTeachersTab(data);
+
+                els.debug.textContent = JSON.stringify(data, null, 2);
+            } catch (e) {
+                els.tabGrade.innerHTML = '<div class="detail-empty">Ошибка загрузки</div>';
             }
-
-            const r = json.response;
-            const discName = r.Discipline?.SubjectName || `ID ${disciplineId}`;
-            els.journalTitle.textContent = discName;
-
-            const journal = Array.isArray(r.Journal) ? r.Journal : [];
-            if (!journal.length) {
-                els.journal.innerHTML = `<div class="muted">Записей в журнале нет (или они не возвращаются для этой дисциплины).</div>`;
-                setStatus('Готово.', 'ok');
-                return;
-            }
-
-            const rows = journal.map(j => {
-                const date = j.LessonDate ? new Date(j.LessonDate).toLocaleDateString('ru-RU') : '';
-                const attended = j.Attended ? '+' : '-';
-                return `<tr><td>${escapeHtml(date)}</td><td>${escapeHtml(j.LessonType || '')}</td><td><b>${escapeHtml(attended)}</b></td></tr>`;
-            }).join('');
-
-            els.journal.innerHTML = `
-      <table>
-        <thead><tr><th>Дата</th><th>Тип</th><th>Посещение</th></tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-    `;
-
-            setStatus('Готово.', 'ok');
         }
+
+        function renderGradeTab(data) {
+            const disc = data.Discipline || {};
+            const mark = currentData.marks[selectedDisciplineId] || currentData.marks[String(selectedDisciplineId)] || '';
+            const gradeClass = getGradeClass(mark);
+
+            els.tabGrade.innerHTML = `
+                <div class="grade-big">
+                    <div class="grade-display ${gradeClass}">${escapeHtml(mark) || '—'}</div>
+                    <div class="grade-label">${disc.Type ? (disc.Type === 'exam' ? 'Экзамен' : disc.Type === 'test' ? 'Зачёт' : escapeHtml(disc.Type)) : 'Оценка'}</div>
+                </div>
+                <div class="detail-info">
+                    <div class="info-row"><span class="info-label">Дисциплина</span><span>${escapeHtml(disc.SubjectName || '')}</span></div>
+                    <div class="info-row"><span class="info-label">Тип</span><span>${escapeHtml(disc.Type || '')}</span></div>
+                </div>
+            `;
+        }
+
+        function renderJournalTab(data) {
+            const journal = Array.isArray(data.Journal) ? data.Journal : [];
+            
+            if (!journal.length) {
+                els.tabJournal.innerHTML = '<div class="detail-empty">Нет данных о посещениях</div>';
+                return;
+            }
+
+            els.tabJournal.innerHTML = `
+                <table class="journal-table">
+                    <thead><tr><th>Дата</th><th>Тип</th><th>Баллы</th><th>Посещение</th></tr></thead>
+                    <tbody>
+                        ${journal.map(j => {
+                            const date = j.LessonDate ? new Date(j.LessonDate).toLocaleDateString('ru-RU') : '';
+                            const attended = j.Attended;
+                            return `
+                                <tr>
+                                    <td>${escapeHtml(date)}</td>
+                                    <td>${escapeHtml(j.LessonType || '')}</td>
+                                    <td>${escapeHtml(j.Mark ?? '')}</td>
+                                    <td class="${attended ? 'attended' : 'missed'}">${attended ? '✓' : '✗'}</td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function renderTeachersTab(data) {
+            const teachers = Array.isArray(data.Teachers) ? data.Teachers : [];
+            
+            if (!teachers.length) {
+                els.tabTeachers.innerHTML = '<div class="detail-empty">Нет данных о преподавателях</div>';
+                return;
+            }
+
+            els.tabTeachers.innerHTML = `
+                <div class="teacher-list">
+                    ${teachers.map(t => `
+                        <div class="teacher-item">
+                            <div class="teacher-avatar">${(t.FirstName || '')[0] || ''}${(t.LastName || '')[0] || ''}</div>
+                            <div class="teacher-info">
+                                <div class="teacher-name">${escapeHtml(t.Name || `${t.LastName} ${t.FirstName} ${t.SecondName}`.trim())}</div>
+                                <div class="teacher-pos">${escapeHtml(t.JobPositionName || '')}</div>
+                            </div>
+                            ${t.IsAuthor ? '<span class="teacher-author">Автор</span>' : ''}
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+            });
+        });
 
         async function reloadAll() {
             const token = getCurrentToken();
-            if (!token) {
-                setStatus('Вставь token (40 символов).', 'error');
-                return;
-            }
-            if (!/^[0-9a-f]{40}$/i.test(token)) {
-                setStatus('Похоже, token не из 40 hex символов.', 'error');
+            if (!token || !/^[0-9a-f]{40}$/i.test(token)) {
+                setStatus('Вставь корректный token (40 hex символов)', 'error');
                 return;
             }
 
             try {
-                setStatus('Загружаю список семестров...', 'muted');
+                setStatus('Загрузка...', '');
                 await loadSemesters(token);
-
+                
                 const semesterID = els.semester.value;
-                setStatus('Загружаю дисциплины...', 'muted');
                 const index = await loadIndex(token, semesterID);
-                renderDisciplines(index);
+                
+                if (!index) throw new Error('Нет данных');
 
-                setStatus('Готово. Выбери дисциплину, чтобы открыть журнал.', 'ok');
+                currentData = {
+                    marks: index.Marks || {},
+                    teachers: index.Teachers || {},
+                    disciplines: index.Disciplines || []
+                };
+
+                renderDisciplines();
+                setStatus('Готово. Выбери дисциплину.', 'ok');
             } catch (e) {
                 setStatus('Ошибка: ' + e.message, 'error');
             }
@@ -415,30 +753,25 @@
         els.btnSave.addEventListener('click', () => {
             const token = els.token.value.trim();
             const remember = els.remember.checked;
-
-            if (!token) {
-                setStatus('Вставь token.', 'error');
+            if (!token || !/^[0-9a-f]{40}$/i.test(token)) {
+                setStatus('Некорректный token', 'error');
                 return;
             }
-            if (!/^[0-9a-f]{40}$/i.test(token)) {
-                setStatus('Token должен быть 40 hex символов.', 'error');
-                return;
-            }
-
             storageSet(token, remember);
-            setStatus(remember ? 'Token сохранён на этом устройстве.' : 'Token не сохранён (режим без запоминания).', 'ok');
+            setStatus(remember ? 'Сохранено' : 'Готово (без сохранения)', 'ok');
         });
 
         els.btnClear.addEventListener('click', () => {
             storageClear();
             els.token.value = '';
             els.remember.checked = false;
-            els.semester.innerHTML = '';
-            els.disciplines.textContent = 'Сохрани token и нажми "Обновить".';
-            els.journal.textContent = 'Выбери дисциплину слева.';
-            els.journalTitle.textContent = '';
-            els.debug.textContent = '';
-            setStatus('Вышли. Token удалён.', 'muted');
+            currentData = { marks: {}, teachers: {}, disciplines: [] };
+            selectedDisciplineId = null;
+            els.disciplines.innerHTML = '<div class="detail-empty">Сохрани token и нажми "Обновить"</div>';
+            els.tabGrade.innerHTML = '<div class="detail-empty">Выбери дисциплину</div>';
+            els.tabJournal.innerHTML = '<div class="detail-empty">Выбери дисциплину</div>';
+            els.tabTeachers.innerHTML = '<div class="detail-empty">Выбери дисциплину</div>';
+            setStatus('Выход выполнен', '');
         });
 
         els.btnReload.addEventListener('click', reloadAll);
@@ -447,12 +780,11 @@
         els.remember.checked = init.r;
         if (init.r && init.t) {
             els.token.value = init.t;
-            setStatus('Token подхвачен из памяти. Нажми "Обновить".', 'muted');
+            setStatus('Token загружен. Нажми "Обновить"', '');
         } else {
-            setStatus('Вставь token. Можно включить "запомнить".', 'muted');
+            setStatus('Вставь token', '');
         }
-        els.semester.innerHTML = `<option value="">(семестр не выбран)</option>`;
+        els.semester.innerHTML = '<option value="">выбери семестр</option>';
     </script>
 </body>
-
 </html>
