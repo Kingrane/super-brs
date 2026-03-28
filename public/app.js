@@ -9,7 +9,8 @@ const state = {
     teachers: {},
     selectedDiscipline: null,
     currentData: null,
-    activeTab: 'grade'
+    activeTab: 'grade',
+    isMobile: window.innerWidth <= 640
 }
 
 // DOM Elements
@@ -31,14 +32,18 @@ const els = {
     semesterSelect: document.getElementById('semesterSelect'),
     discList: document.getElementById('discList'),
     
-    // Detail panel
-    tabButtons: document.querySelectorAll('.tab'),
-    tabContents: document.querySelectorAll('.tab-content'),
-    
-    // Content areas
+    // Detail panel (desktop)
     gradeContent: document.getElementById('gradeContent'),
     journalContent: document.getElementById('journalContent'),
     teachersContent: document.getElementById('teachersContent'),
+    
+    // Mobile modal
+    mobileModal: document.getElementById('mobileModal'),
+    modalTitle: document.getElementById('modalTitle'),
+    btnCloseModal: document.getElementById('btnCloseModal'),
+    modalGradeContent: document.getElementById('modalGradeContent'),
+    modalJournalContent: document.getElementById('modalJournalContent'),
+    modalTeachersContent: document.getElementById('modalTeachersContent'),
     
     // Debug
     debugPre: document.getElementById('debugPre')
@@ -85,43 +90,51 @@ function translateType(type) {
     return map[type?.toLowerCase()] || type || ''
 }
 
-function getGradeClass(mark) {
-    if (!mark) return 'grade-undefined'
+// Russian grade system
+function getGradeInfo(mark) {
+    if (!mark) return { class: 'grade-undefined', text: '—', numeric: null }
+    
     const grade = mark.toUpperCase()
-    if (grade.includes('A')) return 'grade-a'
-    if (grade.includes('B')) return 'grade-b'
-    if (grade.includes('C')) return 'grade-c'
-    if (grade.includes('D')) return 'grade-d'
-    if (grade.includes('E')) return 'grade-e'
-    if (grade.includes('F')) return 'grade-f'
-    return 'grade-undefined'
+    
+    // Direct numeric grades
+    if (grade === '5') return { class: 'grade-5', text: '5', numeric: 5 }
+    if (grade === '4') return { class: 'grade-4', text: '4', numeric: 4 }
+    if (grade === '3') return { class: 'grade-3', text: '3', numeric: 3 }
+    if (grade === '2') return { class: 'grade-2', text: '2', numeric: 2 }
+    
+    // ECTS to Russian
+    if (grade === 'ECTS-A') return { class: 'grade-5', text: '5', numeric: 5 }
+    if (grade === 'ECTS-B') return { class: 'grade-4', text: '4', numeric: 4 }
+    if (grade === 'ECTS-C') return { class: 'grade-4', text: '4', numeric: 4 }
+    if (grade === 'ECTS-D') return { class: 'grade-3', text: '3', numeric: 3 }
+    if (grade === 'ECTS-E') return { class: 'grade-3', text: '3', numeric: 3 }
+    if (grade === 'ECTS-F') return { class: 'grade-2', text: '2', numeric: 2 }
+    
+    // Pass/Fail
+    if (grade === 'ЗАЧЁТ' || grade === 'PASS') return { class: 'grade-pass', text: 'Зачёт', numeric: null }
+    if (grade === 'НЕЗАЧЁТ' || grade === 'FAIL') return { class: 'grade-fail', text: 'Незачёт', numeric: null }
+    
+    return { class: 'grade-undefined', text: '—', numeric: null }
 }
 
-function formatMark(mark) {
-    if (!mark) return '—'
-    const grade = mark.toUpperCase()
-    const map = {
-        'ECTS-A': 'A',
-        'ECTS-B': 'B',
-        'ECTS-C': 'C',
-        'ECTS-D': 'D',
-        'ECTS-E': 'E',
-        'ECTS-F': 'F',
-        'UNDEFINED': '—'
-    }
-    return map[grade] || mark
-}
-
-function getFullMarkText(mark) {
+function getGradeDescription(mark) {
     if (!mark) return 'Не определено'
     const grade = mark.toUpperCase()
     const map = {
-        'ECTS-A': 'A (отлично)',
-        'ECTS-B': 'B (хорошо)',
-        'ECTS-C': 'C (хорошо)',
-        'ECTS-D': 'D (удовлетворительно)',
-        'ECTS-E': 'E (удовлетворительно)',
-        'ECTS-F': 'F (неудовлетворительно)',
+        '5': 'Отлично',
+        '4': 'Хорошо',
+        '3': 'Удовлетворительно',
+        '2': 'Неудовлетворительно',
+        'ECTS-A': 'Отлично',
+        'ECTS-B': 'Хорошо',
+        'ECTS-C': 'Хорошо',
+        'ECTS-D': 'Удовлетворительно',
+        'ECTS-E': 'Удовлетворительно',
+        'ECTS-F': 'Неудовлетворительно',
+        'ЗАЧЁТ': 'Зачёт',
+        'НЕЗАЧЁТ': 'Незачёт',
+        'PASS': 'Зачёт',
+        'FAIL': 'Незачёт',
         'UNDEFINED': 'Не определено'
     }
     return map[grade] || mark
@@ -166,6 +179,21 @@ function showScreen(screenName) {
     document.getElementById(screenName).classList.add('active')
 }
 
+// Mobile modal functions
+function openMobileModal(disciplineId) {
+    const discipline = state.disciplines.find(d => String(d.ID) === String(disciplineId))
+    if (discipline) {
+        els.modalTitle.textContent = discipline.SubjectName || 'Дисциплина'
+    }
+    els.mobileModal.classList.add('active')
+    document.body.style.overflow = 'hidden'
+}
+
+function closeMobileModal() {
+    els.mobileModal.classList.remove('active')
+    document.body.style.overflow = ''
+}
+
 // Login functions
 async function handleLogin() {
     const token = els.tokenInput.value.trim()
@@ -200,21 +228,8 @@ function handleLogout() {
     els.tokenInput.value = ''
     els.rememberCheck.checked = false
     els.semesterSelect.innerHTML = '<option value="">Загрузка...</option>'
-    els.discList.innerHTML = `
-        <div class="empty-state">
-            <div class="empty-state-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                    <line x1="9" y1="9" x2="15" y2="15"/>
-                    <line x1="15" y1="9" x2="9" y2="15"/>
-                </svg>
-            </div>
-            <h3>Выберите семестр</h3>
-            <p>Данные загрузятся автоматически</p>
-        </div>
-    `
     
-    clearDetailPanel()
+    clearPanels()
     showScreen('loginScreen')
 }
 
@@ -266,6 +281,7 @@ async function loadIndex() {
     state.disciplines = data.Disciplines || []
     
     renderDisciplines()
+    clearPanels()
 }
 
 async function loadDisciplineDetails(disciplineId) {
@@ -277,7 +293,10 @@ async function loadDisciplineDetails(disciplineId) {
         )
         
         const data = json?.response || {}
-        renderDetailPanel(data)
+        
+        // Render both desktop and mobile
+        renderDetailPanel(data, els.gradeContent, els.journalContent, els.teachersContent)
+        renderDetailPanel(data, els.modalGradeContent, els.modalJournalContent, els.modalTeachersContent)
         
         if (els.debugPre) {
             els.debugPre.textContent = JSON.stringify(data, null, 2)
@@ -311,7 +330,7 @@ function renderDisciplines() {
     els.discList.innerHTML = state.disciplines.map((d, index) => {
         const id = d.ID
         const mark = state.marks[String(id)] || state.marks[id] || ''
-        const gradeClass = getGradeClass(mark)
+        const gradeInfo = getGradeInfo(mark)
         const rate = d.Rate ?? '-'
         const maxRate = d.MaxCurrentRate ?? '-'
         const isActive = state.selectedDiscipline === id
@@ -320,17 +339,16 @@ function renderDisciplines() {
             <div class="disc-item ${isActive ? 'active' : ''}" data-id="${id}" style="animation: fadeIn 0.3s ease ${index * 0.05}s both">
                 <div class="disc-header">
                     <div class="disc-name">${escapeHtml(d.SubjectName || 'Без названия')}</div>
-                    ${mark ? `<span class="disc-grade ${gradeClass}">${formatMark(mark)}</span>` : ''}
+                    ${mark ? `<span class="disc-grade ${gradeInfo.class}">${gradeInfo.text}</span>` : ''}
                 </div>
                 <div class="disc-meta">
                     <span class="disc-type">${translateType(d.Type)}</span>
-                    <span class="disc-points">${rate}${maxRate !== '-' ? ' / ' + maxRate : ''} баллов</span>
+                    <span class="disc-points">${rate}${maxRate !== '-' ? '/' + maxRate : ''} балл.</span>
                 </div>
             </div>
         `
     }).join('')
     
-    // Add click handlers
     els.discList.querySelectorAll('.disc-item').forEach(item => {
         item.addEventListener('click', () => selectDiscipline(item.dataset.id))
     })
@@ -339,38 +357,37 @@ function renderDisciplines() {
 function selectDiscipline(id) {
     state.selectedDiscipline = id
     
-    // Update active state
     els.discList.querySelectorAll('.disc-item').forEach(item => {
         item.classList.toggle('active', item.dataset.id === id)
     })
     
+    // On mobile, open modal
+    if (state.isMobile) {
+        openMobileModal(id)
+    }
+    
     loadDisciplineDetails(id)
 }
 
-function renderDetailPanel(data) {
+function renderDetailPanel(data, gradeEl, journalEl, teachersEl) {
     const discipline = data.Discipline || {}
     const mark = state.marks[state.selectedDiscipline] || state.marks[String(state.selectedDiscipline)] || ''
     
-    // Grade tab
-    renderGradeTab(data, mark)
-    
-    // Journal tab
-    renderJournalTab(data)
-    
-    // Teachers tab
-    renderTeachersTab(data)
+    renderGradeTab(data, mark, gradeEl)
+    renderJournalTab(data, journalEl)
+    renderTeachersTab(data, teachersEl)
 }
 
-function renderGradeTab(data, mark) {
+function renderGradeTab(data, mark, container) {
     const discipline = data.Discipline || {}
-    const gradeClass = getGradeClass(mark)
+    const gradeInfo = getGradeInfo(mark)
     const rate = discipline.Rate ?? '-'
     const maxRate = discipline.MaxCurrentRate ?? '-'
     
-    els.gradeContent.innerHTML = `
+    container.innerHTML = `
         <div class="grade-display">
-            <div class="grade-big ${gradeClass}">${formatMark(mark)}</div>
-            <div class="grade-label">${translateType(discipline.Type)}</div>
+            <div class="grade-big ${gradeInfo.class}">${gradeInfo.text}</div>
+            <div class="grade-label">${getGradeDescription(mark)}</div>
             
             <div class="grade-details">
                 <div class="info-row">
@@ -382,23 +399,19 @@ function renderGradeTab(data, mark) {
                     <span class="info-value">${translateType(discipline.Type)}</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">Набрано баллов</span>
+                    <span class="info-label">Баллы</span>
                     <span class="info-value">${rate}${maxRate !== '-' ? ' / ' + maxRate : ''}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Оценка</span>
-                    <span class="info-value">${getFullMarkText(mark)}</span>
                 </div>
             </div>
         </div>
     `
 }
 
-function renderJournalTab(data) {
+function renderJournalTab(data, container) {
     const journal = Array.isArray(data.Journal) ? data.Journal : []
     
     if (!journal.length) {
-        els.journalContent.innerHTML = `
+        container.innerHTML = `
             <div class="empty-state">
                 <div class="empty-state-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -409,43 +422,69 @@ function renderJournalTab(data) {
                     </svg>
                 </div>
                 <h3>Нет данных</h3>
-                <p>Информация о посещениях недоступна</p>
+                <p>Информация о занятиях недоступна</p>
             </div>
         `
         return
     }
     
-    els.journalContent.innerHTML = `
-        <table class="journal-table">
-            <thead>
-                <tr>
-                    <th>Дата</th>
-                    <th>Тип</th>
-                    <th>Баллы</th>
-                    <th>Статус</th>
-                </tr>
-            </thead>
-            <tbody>
+    // Mobile-friendly card list instead of table
+    if (state.isMobile) {
+        container.innerHTML = `
+            <div class="journal-list">
                 ${journal.map(j => `
-                    <tr>
-                        <td>${formatDate(j.LessonDate)}</td>
-                        <td>${escapeHtml(j.LessonType || '—')}</td>
-                        <td>${j.Mark ?? '—'}</td>
-                        <td class="${j.Attended ? 'attended' : 'missed'}">
-                            ${j.Attended ? 'Присутствовал' : 'Отсутствовал'}
-                        </td>
-                    </tr>
+                    <div class="journal-item">
+                        <div class="journal-header">
+                            <span class="journal-date">${formatDate(j.LessonDate)}</span>
+                            <span class="journal-type">${escapeHtml(j.LessonType || '—')}</span>
+                        </div>
+                        ${j.Topic ? `<div class="journal-topic">${escapeHtml(j.Topic)}</div>` : ''}
+                        <div class="journal-footer">
+                            <span class="journal-mark">${j.Mark !== null && j.Mark !== undefined ? j.Mark : '—'} балл.</span>
+                            <span class="journal-status ${j.Attended ? 'attended' : 'missed'}">
+                                ${j.Attended ? '✓ Присутствовал' : '✗ Отсутствовал'}
+                            </span>
+                        </div>
+                    </div>
                 `).join('')}
-            </tbody>
-        </table>
-    `
+            </div>
+        `
+    } else {
+        // Desktop table
+        container.innerHTML = `
+            <table class="journal-table">
+                <thead>
+                    <tr>
+                        <th>Дата</th>
+                        <th>Тип</th>
+                        <th>Тема</th>
+                        <th>Баллы</th>
+                        <th>Статус</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${journal.map(j => `
+                        <tr>
+                            <td>${formatDate(j.LessonDate)}</td>
+                            <td>${escapeHtml(j.LessonType || '—')}</td>
+                            <td>${escapeHtml(j.Topic || '—')}</td>
+                            <td>${j.Mark !== null && j.Mark !== undefined ? j.Mark : '—'}</td>
+                            <td class="${j.Attended ? 'attended' : 'missed'}">
+                                ${j.Attended ? '✓' : '✗'}
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `
+    }
 }
 
-function renderTeachersTab(data) {
+function renderTeachersTab(data, container) {
     const teachers = Array.isArray(data.Teachers) ? data.Teachers : []
     
     if (!teachers.length) {
-        els.teachersContent.innerHTML = `
+        container.innerHTML = `
             <div class="empty-state">
                 <div class="empty-state-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -460,7 +499,7 @@ function renderTeachersTab(data) {
         return
     }
     
-    els.teachersContent.innerHTML = `
+    container.innerHTML = `
         <div class="teacher-list">
             ${teachers.map(t => {
                 const initials = ((t.FirstName || '')[0] || '') + ((t.LastName || '')[0] || '')
@@ -480,8 +519,8 @@ function renderTeachersTab(data) {
     `
 }
 
-function clearDetailPanel() {
-    els.gradeContent.innerHTML = `
+function clearPanels() {
+    const emptyStateHTML = `
         <div class="empty-state">
             <div class="empty-state-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -490,12 +529,19 @@ function clearDetailPanel() {
                 </svg>
             </div>
             <h3>Выберите дисциплину</h3>
-            <p>Нажмите на дисциплину слева, чтобы увидеть подробности</p>
+            <p>Нажмите на дисциплину, чтобы увидеть подробности</p>
         </div>
     `
     
-    els.journalContent.innerHTML = els.gradeContent.innerHTML
-    els.teachersContent.innerHTML = els.gradeContent.innerHTML
+    els.gradeContent.innerHTML = emptyStateHTML
+    els.journalContent.innerHTML = emptyStateHTML
+    els.teachersContent.innerHTML = emptyStateHTML
+    
+    if (els.modalGradeContent) {
+        els.modalGradeContent.innerHTML = emptyStateHTML
+        els.modalJournalContent.innerHTML = emptyStateHTML
+        els.modalTeachersContent.innerHTML = emptyStateHTML
+    }
 }
 
 function showLoading() {
@@ -515,14 +561,45 @@ function hideLoading() {
     document.querySelectorAll('.loading-overlay').forEach(el => el.remove())
 }
 
-// Event listeners
-function init() {
+// Tab switching
+function setupTabs(container) {
+    const tabs = container.querySelectorAll('.tab')
+    const contents = container.querySelectorAll('.tab-content')
+    
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const tabName = tab.dataset.tab
+            
+            tabs.forEach(t => t.classList.remove('active'))
+            contents.forEach(c => c.classList.remove('active'))
+            
+            tab.classList.add('active')
+            container.querySelector(`#${container.id ? container.id + '-' : ''}tab-${tabName}`)?.classList.add('active')
+            
+            // Also update mobile tabs if needed
+            if (!container.closest('.mobile-modal')) {
+                const mobileTab = document.querySelector(`.mobile-modal .tab[data-tab="${tabName}"]`)
+                if (mobileTab) {
+                    mobileTab.click()
+                }
+            }
+        })
+    })
+}
+
+// Initialize
+async function init() {
     // Check for saved token
     const saved = storageGet()
     if (saved.token && saved.remember) {
         els.tokenInput.value = saved.token
         els.rememberCheck.checked = true
     }
+    
+    // Check mobile on resize
+    window.addEventListener('resize', () => {
+        state.isMobile = window.innerWidth <= 640
+    })
     
     // Login events
     els.btnLogin.addEventListener('click', handleLogin)
@@ -536,20 +613,21 @@ function init() {
     els.btnRefresh.addEventListener('click', loadIndex)
     els.semesterSelect.addEventListener('change', loadIndex)
     
-    // Tab switching
-    els.tabButtons.forEach(tab => {
-        tab.addEventListener('click', () => {
-            const tabName = tab.dataset.tab
-            
-            // Update active tab
-            els.tabButtons.forEach(t => t.classList.remove('active'))
-            els.tabContents.forEach(c => c.classList.remove('active'))
-            
-            tab.classList.add('active')
-            document.getElementById('tab-' + tabName).classList.add('active')
-            
-            state.activeTab = tabName
-        })
+    // Mobile modal
+    els.btnCloseModal.addEventListener('click', closeMobileModal)
+    els.mobileModal.addEventListener('click', (e) => {
+        if (e.target === els.mobileModal) closeMobileModal()
+    })
+    
+    // Setup tabs
+    setupTabs(document.querySelector('.detail-panel'))
+    setupTabs(document.querySelector('.mobile-modal .card'))
+    
+    // Close modal on escape
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && els.mobileModal.classList.contains('active')) {
+            closeMobileModal()
+        }
     })
 }
 

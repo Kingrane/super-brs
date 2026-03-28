@@ -107,6 +107,7 @@
                     </div>
                 </div>
 
+                <!-- Desktop detail panel -->
                 <div class="right-col">
                     <div class="card detail-panel">
                         <div class="tabs">
@@ -171,6 +172,39 @@
                 <summary>Debug (ответы API)</summary>
                 <pre id="debugPre"></pre>
             </details>
+        </div>
+    </div>
+
+    <!-- Mobile Modal -->
+    <div id="mobileModal" class="mobile-modal">
+        <div class="modal-header">
+            <h2 class="modal-title" id="modalTitle">Дисциплина</h2>
+            <button id="btnCloseModal" class="btn-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        </div>
+        <div class="modal-content">
+            <div class="card">
+                <div class="tabs">
+                    <button class="tab active" data-tab="grade">Оценка</button>
+                    <button class="tab" data-tab="journal">Посещения</button>
+                    <button class="tab" data-tab="teachers">Преподаватели</button>
+                </div>
+                <div class="card-body">
+                    <div id="modal-tab-grade" class="tab-content active">
+                        <div id="modalGradeContent"></div>
+                    </div>
+                    <div id="modal-tab-journal" class="tab-content">
+                        <div id="modalJournalContent"></div>
+                    </div>
+                    <div id="modal-tab-teachers" class="tab-content">
+                        <div id="modalTeachersContent"></div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
