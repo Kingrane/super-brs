@@ -20,7 +20,7 @@ export default async function handler(req, res) {
     }
 
     try {
-        const { res: upstreamResponse, text } = await proxyStudentEndpoint("/student/discipline/journal", { token, id })
+        const { res: upstreamResponse, text } = await proxyStudentEndpoint("/student/discipline/subject", { token, id })
         return passThroughJson(res, upstreamResponse, text)
     } catch (e) {
         return sendError(res, 502, "Upstream request failed", e.message)

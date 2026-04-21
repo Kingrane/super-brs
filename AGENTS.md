@@ -1,110 +1,197 @@
 # Agent Guidelines for brs-test
 
-## Project Overview
+## Mission
 
-This is a Node.js/Express backend API project that proxies requests to an external grade service (grade.sfedu.ru). It serves a static frontend and provides API endpoints for student data.
+This repository is an API-first web client for SFEDU BRS (`grade.sfedu.ru`) with:
+- local runtime via Express (`server.js` + `public/*`)
+- deploy runtime via Vercel serverless handlers (`api/*`)
 
-## Build & Commands
+Primary mission for any contributor/agent:
+1. Keep API behavior consistent across local and Vercel runtimes.
+2. Preserve upstream compatibility (proxy-style behavior, no lossy transformations).
+3. Keep the frontend resilient, responsive, and production-like.
+4. Improve design quality without reducing readability/accessibility.
 
-### Running the Project
-```bash
-npm start          # Start the production server (node server.js)
+---
+
+## Current Architecture
+
+```text
+api/
+  _gradeFetch.js               # upstream fetch with timeout + user-agent
+  _http.js                     # shared HTTP helpers (error + passthrough)
+  _studentApi.js               # student proxy helpers + query validation
+  student/
+    semester_list.js           # GET /api/student/semester_list
+    index.js                   # GET /api/student/index
+    profile.js                 # GET /api/student/profile
+    discipline/
+      journal.js               # GET /api/student/discipline/journal
+      subject.js               # GET /api/student/discipline/subject
+
+public/
+  index.html                   # main UI
+  app.js                       # frontend state + API + rendering
+  styles.css                   # visual system + responsive layout
+
+server.js                      # Express app that mounts same handlers from api/*
+package.json                   # scripts (start/dev)
+vercel.json                    # Vercel static settings
 ```
 
-### No Additional Commands
-- No linting configured
-- No tests currently exist
-- No TypeScript
+Key invariant: `server.js` must call handlers from `api/*`, not duplicate endpoint logic.
 
-## Code Style Guidelines
+---
 
-### General
-- Use ES Modules (`import`/`export`, not CommonJS `require`)
-- Use 4 spaces for indentation
-- No semicolons at end of statements
-- Use `const` by default, `let` only when reassignment needed, avoid `var`
+## API Documentation Coverage Target
 
-### Imports & Exports
-- Use named exports for utilities (`export async function gradeFetch`)
-- Use default exports for route handlers (`export default async function handler`)
-- Import with `.js` extension in specifiers: `import { gradeFetch } from "./_gradeFetch.js"`
-- Group imports: built-in modules first, then external, then local
+Base docs: `https://grade.sfedu.ru/restapi/`
 
-### Naming Conventions
-- **Variables/functions**: camelCase (`gradeFetch`, `semesterID`)
-- **Constants**: SCREAMING_SNAKE_CASE for config values (`GRADE_ORIGIN`, `API_BASE`)
-- **Files**: kebab-case (`_gradeFetch.js`, `semester_list.js`)
-- **Route handlers**: name the function `handler`
+Student-facing endpoints to support at minimum:
+- `GET /api/v1/student/semester_list`
+- `GET /api/v1/student`
+- `GET /api/v1/student/discipline/journal`
+- `GET /api/v1/student/discipline/subject`
+- `GET /api/v1/student/profile` (or nearest available profile route)
 
-### Types
-- No TypeScript; use JSDoc comments if needed for clarity
-- Use descriptive variable names to indicate intent
+When adding new functionality, follow this policy:
+1. Add serverless handler in `api/student/**`.
+2. Reuse shared helpers (`_studentApi.js`, `_http.js`, `_gradeFetch.js`).
+3. Mount in `server.js` via `app.all` + adapter.
+4. Add frontend consumer only after endpoint works in both runtimes.
 
-### HTTP API Patterns
-```javascript
-export default async function handler(req, res) {
-    // Validate method
-    if (req.method !== "GET") {
-        return res.status(405).json({ error: "Method Not Allowed" });
-    }
+---
 
-    // Extract and validate query params
-    const token = req.query.token;
-    if (!token) {
-        return res.status(400).json({ error: "token is required" });
-    }
+## Backend Contract Rules
 
-    // Use try/catch for upstream failures
-    try {
-        const { res: up, text } = await gradeFetch("/endpoint?" + qs);
-        res.setHeader("Content-Type", "application/json; charset=utf-8");
-        return res.status(up.status).send(text);
-    } catch (e) {
-        return res.status(502).json({ error: "Upstream request failed", details: e.message });
-    }
+### Methods and Validation
+- Every handler must enforce method via `requireMethod(req, res, "GET")` (or needed method).
+- Required query params must be validated before upstream calls.
+- Token validation is intentionally tolerant (minimum length check) because token format may vary by environment.
+
+### Error Response Format
+Always return:
+
+```json
+{
+  "error": "Human readable message",
+  "details": "Optional technical details"
 }
 ```
 
-### Error Handling
-- Return appropriate HTTP status codes:
-  - `400` for bad request / missing required params
-  - `405` for method not allowed
-  - `502` for upstream failures
-- Include error message in JSON response: `{ error: "description" }`
-- Include `details` field for debugging when applicable
+Status codes:
+- `400` invalid/missing request params
+- `405` method not allowed
+- `502` upstream timeout/network failure/transport issue
 
-### Async/Await
-- Always wrap async route handlers in try/catch
-- Use `finally` to clear timeouts
-- Handle AbortError specifically for timeouts (optional)
+### Upstream Pass-through
+- Keep upstream status code.
+- Keep upstream body as-is.
+- Preserve upstream `content-type` when available.
 
-### Security
-- Validate all required query parameters
-- Use `encodeURIComponent()` for user input in URLs
-- Set appropriate Content-Type headers
-- Use `new URLSearchParams()` for building query strings (preferred)
+### Network/Timeout Requirements
+- Use `AbortController` timeout in upstream requests.
+- Timeout stays at `12_000` ms unless explicitly changed.
+- Keep `user-agent` header in upstream requests.
 
-### Fetch/Network
-- Use AbortController with timeout for all fetch calls
-- Set 12-second timeout: `const timeoutMs = 12_000`
-- Always include user-agent header
-- Use `redirect: "follow"` for proxy endpoints
+---
 
-### Project Structure
-```
-api/
-  _gradeFetch.js      # Shared fetch utility with timeout
-  student/
-    index.js          # GET /api/student endpoint
-    semester_list.js   # GET /api/student/semester_list endpoint
-    discipline/
-      journal.js      # GET /api/student/discipline/journal endpoint
-public/
-  index.html          # Frontend static files
-server.js             # Main Express app entry point
-```
+## Frontend Product Rules
 
-### Testing
-- Test files go in `api/test.js`
-- Run specific test: No test framework configured yet
-- Add tests for new API endpoints covering success and error cases
+### UX States (Mandatory)
+Each async block must support:
+- loading skeleton
+- empty state
+- error state with retry action
+- success state
+
+### Data Flow
+- Token/session state in memory + localStorage (`remember` mode).
+- Semesters and discipline index are loaded first.
+- Discipline details loaded per discipline, cached by key:
+  - `semesterID:disciplineID`
+- Profile loaded independently and should fail gracefully.
+
+### Rendering Requirements
+- Discipline list must be interactive and keyboard-safe.
+- Tabs must work without layout shift.
+- Debug panel should remain available for troubleshooting API response shapes.
+
+### Language and Domain Copy
+- UI copy should be Russian-first.
+- Domain naming should prefer `БРС ЮФУ` over generic English labels.
+- Discipline types should be localized in UI:
+  - `exam` -> `Экзамен`
+  - `credit` -> `Зачет`
+  - `difftest` -> `Дифференцированный зачет`
+  - `coursework` -> `Курсовая работа`
+  - `practice` -> `Практика`
+
+### Grades/Progress Display Policy
+- Primary badge should show percentage where possible (`Rate / MaxCurrentRate`).
+- Keep color semantics consistent:
+  - excellent / good / mid / bad / muted
+- If percentage cannot be computed, fallback to normalized mapping from known marks.
+
+---
+
+## Visual System Rules
+
+Current visual direction:
+- warm academic glass aesthetic
+- neutral background + a single teal accent
+- compact, service-like density (no oversized decorative blocks)
+
+Do:
+- preserve clear hierarchy and spacing rhythm
+- keep responsive behavior stable (mobile first fallback)
+- maintain readable contrast and visible focus states
+
+Do not:
+- switch to random palette/theme each change
+- introduce visual noise that reduces clarity
+- break desktop/mobile parity of key actions
+
+---
+
+## Runtime and Scripts
+
+`package.json` scripts:
+- `npm start` -> `node server.js`
+- `npm run dev` -> `node server.js`
+
+Notes:
+- In local development, port conflicts (`EADDRINUSE`) are environment issues; kill previous process or set `PORT`.
+- Vercel deploy should keep `api/*` serverless handlers as source of API behavior.
+
+---
+
+## Quality Checklist Before Finishing Any Task
+
+Backend:
+- [ ] Handler exists in `api/*` and uses shared helpers.
+- [ ] `server.js` route is mounted for local runtime.
+- [ ] Method + params + error schema verified.
+- [ ] Upstream status/body/content-type passthrough preserved.
+
+Frontend:
+- [ ] Loading/empty/error/retry states present.
+- [ ] Mobile layout checked (`<=768px`) and desktop checked.
+- [ ] Russian copy and domain terms are consistent.
+- [ ] No console errors from changed logic.
+
+Project:
+- [ ] `node --check` passes for edited JS files.
+- [ ] `git status --short` reviewed for accidental artifacts.
+- [ ] AGENTS.md updated if architecture/contracts changed.
+
+---
+
+## Change Management Policy
+
+When updating this repo, avoid hidden drift:
+1. If endpoint contract changes, update `AGENTS.md` and frontend expectations.
+2. If UI behavior changes, ensure fallback for incomplete API response shape.
+3. If a new endpoint is added, wire it in both serverless and local Express path.
+
+Use small, verifiable increments. Prefer correctness and stability over flashy rewrites.

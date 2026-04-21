@@ -1,23 +1,26 @@
-import { gradeFetch } from "../_gradeFetch.js";
+import { proxyStudentEndpoint, validateToken } from "../_studentApi.js"
+import { passThroughJson, requireMethod, sendError } from "../_http.js"
 
 export default async function handler(req, res) {
-    if (req.method !== "GET") return res.status(405).json({ error: "Method Not Allowed" });
+    if (!requireMethod(req, res, "GET")) {
+        return
+    }
 
-    const token = req.query.token;
-    const semesterID = req.query.SemesterID;
+    const token = req.query.token
+    const semesterID = req.query.SemesterID
 
-    if (!token) return res.status(400).json({ error: "token is required" });
-
-    const qs = new URLSearchParams({ token });
-    if (semesterID) qs.set("SemesterID", String(semesterID));
+    const tokenValidationError = validateToken(token)
+    if (tokenValidationError) {
+        return sendError(res, 400, tokenValidationError)
+    }
 
     try {
-        const { res: up, text } = await gradeFetch("/student?" + qs.toString(), { method: "GET" });
-
-        res.setHeader("Content-Type", "application/json; charset=utf-8");
-        return res.status(up.status).send(text);
+        const { res: upstreamResponse, text } = await proxyStudentEndpoint("/student", {
+            token,
+            SemesterID: semesterID
+        })
+        return passThroughJson(res, upstreamResponse, text)
     } catch (e) {
-        // AbortError -> timeout
-        return res.status(502).json({ error: "Upstream request failed", details: e.message });
+        return sendError(res, 502, "Upstream request failed", e.message)
     }
 }

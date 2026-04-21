@@ -1,81 +1,42 @@
-import express from 'express';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import express from "express"
+import { fileURLToPath } from "url"
+import { dirname, join } from "path"
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import semesterListHandler from "./api/student/semester_list.js"
+import studentIndexHandler from "./api/student/index.js"
+import disciplineJournalHandler from "./api/student/discipline/journal.js"
+import disciplineSubjectHandler from "./api/student/discipline/subject.js"
+import studentProfileHandler from "./api/student/profile.js"
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
 
-const GRADE_ORIGIN = "https://grade.sfedu.ru";
-const API_BASE = "/api/v1";
+const app = express()
+const port = process.env.PORT || 3000
 
-async function gradeFetch(path) {
-    const url = GRADE_ORIGIN + API_BASE + path;
-    const controller = new AbortController();
-    const timeoutMs = 12_000;
-    const t = setTimeout(() => controller.abort(), timeoutMs);
+app.use(express.static(join(__dirname, "public")))
 
-    try {
-        const res = await fetch(url, {
-            redirect: "follow",
-            signal: controller.signal,
-            headers: {
-                "user-agent": "grade-student-web/0.1",
+function adaptHandler(handler) {
+    return async (req, res) => {
+        try {
+            await handler(req, res)
+        } catch (e) {
+            if (!res.headersSent) {
+                res.status(502).json({
+                    error: "Upstream request failed",
+                    details: e.message
+                })
             }
-        });
-        const text = await res.text();
-        return { status: res.status, text };
-    } finally {
-        clearTimeout(t);
+        }
     }
 }
 
-app.use(express.static(join(__dirname, 'public')));
+app.all("/api/student/semester_list", adaptHandler(semesterListHandler))
+app.all("/api/student/index", adaptHandler(studentIndexHandler))
+app.all("/api/student/discipline/journal", adaptHandler(disciplineJournalHandler))
+app.all("/api/student/discipline/subject", adaptHandler(disciplineSubjectHandler))
+app.all("/api/student/profile", adaptHandler(studentProfileHandler))
 
-app.get('/api/student/semester_list', async (req, res) => {
-    const { token } = req.query;
-    if (!token) return res.status(400).json({ error: "token is required" });
-    
-    try {
-        const { status, text } = await gradeFetch("/student/semester_list?token=" + encodeURIComponent(token));
-        res.setHeader("Content-Type", "application/json; charset=utf-8");
-        res.status(status).send(text);
-    } catch (e) {
-        res.status(502).json({ error: "Upstream request failed", details: e.message });
-    }
-});
-
-app.get('/api/student/index', async (req, res) => {
-    const { token, SemesterID } = req.query;
-    if (!token) return res.status(400).json({ error: "token is required" });
-    
-    try {
-        let path = "/student?token=" + encodeURIComponent(token);
-        if (SemesterID) path += "&SemesterID=" + encodeURIComponent(SemesterID);
-        const { status, text } = await gradeFetch(path);
-        res.setHeader("Content-Type", "application/json; charset=utf-8");
-        res.status(status).send(text);
-    } catch (e) {
-        res.status(502).json({ error: "Upstream request failed", details: e.message });
-    }
-});
-
-app.get('/api/student/discipline/journal', async (req, res) => {
-    const { token, id } = req.query;
-    if (!token) return res.status(400).json({ error: "token is required" });
-    if (!id) return res.status(400).json({ error: "id is required" });
-    
-    try {
-        const { status, text } = await gradeFetch("/student/discipline/journal?token=" + encodeURIComponent(token) + "&id=" + encodeURIComponent(id));
-        res.setHeader("Content-Type", "application/json; charset=utf-8");
-        res.status(status).send(text);
-    } catch (e) {
-        res.status(502).json({ error: "Upstream request failed", details: e.message });
-    }
-});
-
-app.listen(PORT, () => {
-    console.log(`Server running at http://localhost:${PORT}`);
-});
+app.listen(port, () => {
+    console.log(`Server running at http://localhost:${port}`)
+})
