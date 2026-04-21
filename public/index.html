@@ -1,21 +1,25 @@
 <!DOCTYPE html>
 <html lang="ru">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Полнофункциональный клиент Сервиса БРС SFEDU">
-    <title>SFEDU БРС - Student API Client</title>
+    <title>SFEDU БРС</title>
     <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
     <div id="app" class="app-shell">
         <section id="loginView" class="view view-active" aria-labelledby="loginTitle">
             <div class="auth-layout">
                 <aside class="auth-aside">
-                    <p class="kicker">Student API</p>
-                    <h1 id="loginTitle">Сервис БРС SFEDU</h1>
-                    <p class="lead">Единый клиент для просмотра семестров, дисциплин, журнала, модулей и профиля студента.</p>
-                    <a class="link-inline" target="_blank" rel="noopener noreferrer" href="https://grade.sfedu.ru/sign?goal=/student/authtokenget">
+                    <p class="kicker">Топ дс брс</p>
+                    <h1 id="loginTitle">Сервис БРС ЮФУ</h1>
+                    <p class="lead">Сильный человек это не тот кто поднимает тяжести или управляет компанией, а тот кто
+                        получил 60 баллов по непре</p>
+                    <a class="link-inline" target="_blank" rel="noopener noreferrer"
+                        href="https://grade.sfedu.ru/sign?goal=/student/authtokenget">
                         Получить токен доступа
                     </a>
                 </aside>
@@ -23,7 +27,8 @@
                 <div class="auth-card" aria-live="polite">
                     <label class="field">
                         <span>Токен</span>
-                        <input id="tokenInput" class="input mono" type="text" placeholder="40 символов hex" maxlength="40" autocomplete="off">
+                        <input id="tokenInput" class="input mono" type="text" placeholder="40 символов hex"
+                            maxlength="40" autocomplete="off">
                     </label>
 
                     <div class="auth-actions-row">
@@ -131,4 +136,5 @@
 
     <script type="module" src="app.js"></script>
 </body>
+
 </html>
