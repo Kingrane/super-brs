@@ -1,3 +1,9 @@
+import React, { useEffect, useMemo, useRef, useState } from "https://esm.sh/react@18.3.1"
+import { createRoot } from "https://esm.sh/react-dom@18.3.1/client"
+import htm from "https://esm.sh/htm@3.1.1"
+
+const html = htm.bind(React.createElement)
+
 const ENDPOINTS = {
     semesters: "/api/student/semester_list",
     index: "/api/student/index",
@@ -6,54 +12,11 @@ const ENDPOINTS = {
     profile: "/api/student/profile"
 }
 
-const state = {
-    token: "",
-    remember: false,
-    semesters: [],
-    currentSemesterID: "",
-    disciplines: [],
-    marks: {},
-    teachersMap: {},
-    selectedDisciplineID: "",
-    detailCache: new Map(),
-    profile: null,
-    debugLog: {},
-    request: {
-        semesters: "idle",
-        index: "idle",
-        detail: "idle",
-        profile: "idle"
-    },
-    lastMainLoadError: ""
-}
-
-const els = {
-    loginView: document.getElementById("loginView"),
-    dashboardView: document.getElementById("dashboardView"),
-    tokenInput: document.getElementById("tokenInput"),
-    rememberCheck: document.getElementById("rememberCheck"),
-    btnPaste: document.getElementById("btnPaste"),
-    btnLogin: document.getElementById("btnLogin"),
-    loginStatus: document.getElementById("loginStatus"),
-    btnLogout: document.getElementById("btnLogout"),
-    btnRefresh: document.getElementById("btnRefresh"),
-    btnRetryMain: document.getElementById("btnRetryMain"),
-    semesterSelect: document.getElementById("semesterSelect"),
-    discList: document.getElementById("discList"),
-    discCount: document.getElementById("discCount"),
-    subjectTitle: document.getElementById("subjectTitle"),
-    subjectBadge: document.getElementById("subjectBadge"),
-    profileContent: document.getElementById("profileContent"),
-    debugPre: document.getElementById("debugPre"),
-    tabButtons: Array.from(document.querySelectorAll(".tab")),
-    tabPanels: {
-        grade: document.getElementById("tab-grade"),
-        journal: document.getElementById("tab-journal"),
-        map: document.getElementById("tab-map"),
-        teachers: document.getElementById("tab-teachers")
-    },
-    tplLoading: document.getElementById("tplLoading"),
-    tplEmpty: document.getElementById("tplEmpty")
+const INITIAL_REQUEST = {
+    semesters: "idle",
+    index: "idle",
+    detail: "idle",
+    profile: "idle"
 }
 
 function getStoredAuth() {
@@ -79,12 +42,6 @@ function clearStoredAuth() {
 
 function isLikelyToken(token) {
     return /^[0-9a-z-]{16,80}$/i.test(token.trim())
-}
-
-function escapeHtml(value) {
-    const node = document.createElement("div")
-    node.textContent = String(value ?? "")
-    return node.innerHTML
 }
 
 function normalizeNumber(value) {
@@ -121,26 +78,14 @@ function formatTeacherShortName(teacher) {
     return fallback || "Преподаватель"
 }
 
-function setStatus(message, type = "") {
-    els.loginStatus.textContent = message || ""
-    els.loginStatus.className = "status"
-    if (message) {
-        els.loginStatus.classList.add("status-visible")
+function buildQuery(params) {
+    const qs = new URLSearchParams()
+    for (const [key, value] of Object.entries(params)) {
+        if (value !== undefined && value !== null && value !== "") {
+            qs.set(key, String(value))
+        }
     }
-    if (type) {
-        els.loginStatus.classList.add(`status-${type}`)
-    }
-}
-
-function setMainError(message) {
-    state.lastMainLoadError = message
-    els.btnRetryMain.hidden = !message
-}
-
-function showView(name) {
-    const isLogin = name === "login"
-    els.loginView.classList.toggle("view-active", isLogin)
-    els.dashboardView.classList.toggle("view-active", !isLogin)
+    return qs.toString()
 }
 
 async function apiGet(url) {
@@ -154,67 +99,6 @@ async function apiGet(url) {
     }
 
     return { res, text, json }
-}
-
-function buildQuery(params) {
-    const qs = new URLSearchParams()
-    for (const [key, value] of Object.entries(params)) {
-        if (value !== undefined && value !== null && value !== "") {
-            qs.set(key, String(value))
-        }
-    }
-    return qs.toString()
-}
-
-async function fetchJson(endpoint, params) {
-    const query = buildQuery(params)
-    const url = query ? `${endpoint}?${query}` : endpoint
-    const { res, text, json } = await apiGet(url)
-
-    state.debugLog[url] = json || text
-    renderDebug()
-
-    if (!res.ok) {
-        const errMessage = json?.error || json?.message || `HTTP ${res.status}`
-        const details = json?.details ? ` (${json.details})` : ""
-        throw new Error(errMessage + details)
-    }
-
-    return json
-}
-
-function renderDebug() {
-    if (!els.debugPre) return
-    els.debugPre.textContent = JSON.stringify(state.debugLog, null, 2)
-}
-
-function renderLoading(container) {
-    container.innerHTML = ""
-    container.appendChild(els.tplLoading.content.cloneNode(true))
-}
-
-function renderEmpty(container, title, description) {
-    container.innerHTML = ""
-    const node = els.tplEmpty.content.cloneNode(true)
-    const h4 = node.querySelector("h4")
-    const p = node.querySelector("p")
-    h4.textContent = title
-    p.textContent = description
-    container.appendChild(node)
-}
-
-function renderError(container, title, details, retryAction) {
-    container.innerHTML = `
-        <div class="state state-error">
-            <h4>${escapeHtml(title)}</h4>
-            <p>${escapeHtml(details)}</p>
-            <button class="btn btn-ghost state-retry" type="button">Повторить</button>
-        </div>
-    `
-    const btn = container.querySelector(".state-retry")
-    if (btn) {
-        btn.addEventListener("click", retryAction)
-    }
 }
 
 function formatSemesterLabel(semester) {
@@ -246,8 +130,7 @@ function getGradePresentation(mark, discipline) {
         return {
             text: `${percent}%`,
             tone: getGradeToneByPercent(percent),
-            description: "Процент освоения дисциплины",
-            percent
+            description: "Процент освоения дисциплины"
         }
     }
 
@@ -268,555 +151,687 @@ function getGradePresentation(mark, discipline) {
         "ЗАЧЁТ": { text: "100%", tone: "excellent", description: "Зачет" },
         "НЕЗАЧЁТ": { text: "40%", tone: "bad", description: "Незачет" }
     }
-    return map[value] || { text: "-", tone: "muted", description: "Не определено", percent: null }
+    return map[value] || { text: "-", tone: "muted", description: "Не определено" }
 }
 
-function renderSemesters() {
-    if (!state.semesters.length) {
-        els.semesterSelect.innerHTML = `<option value="">Семестры не найдены</option>`
-        return
-    }
-
-    els.semesterSelect.innerHTML = state.semesters.map((semester) => {
-        const selected = String(semester.ID) === String(state.currentSemesterID) ? "selected" : ""
-        return `<option value="${escapeHtml(semester.ID)}" ${selected}>${escapeHtml(formatSemesterLabel(semester))}</option>`
-    }).join("")
-}
-
-function renderDisciplines() {
-    els.discCount.textContent = String(state.disciplines.length)
-
-    if (state.request.index === "loading") {
-        renderLoading(els.discList)
-        return
-    }
-
-    if (!state.disciplines.length) {
-        renderEmpty(els.discList, "Нет дисциплин", "В выбранном семестре не найдено дисциплин.")
-        return
-    }
-
-    els.discList.innerHTML = state.disciplines.map((discipline, index) => {
-        const id = String(discipline.ID)
-        const mark = state.marks[id] || state.marks[discipline.ID] || ""
-        const grade = getGradePresentation(mark, discipline)
-        const active = state.selectedDisciplineID === id ? "disc-item-active" : ""
-        const teachers = getIndexTeachersForDiscipline(id)
-        const teachersPreview = teachers
-            .slice(0, 2)
-            .map((teacher) => formatTeacherShortName(teacher))
-            .join(" · ")
-        const teachersOverflow = teachers.length > 2 ? ` +${teachers.length - 2}` : ""
-        const points = discipline.MaxCurrentRate
-            ? `${discipline.Rate || 0} / ${discipline.MaxCurrentRate}`
-            : `${discipline.Rate || 0}`
-
-        return `
-            <button class="disc-item ${active}" data-id="${escapeHtml(id)}" type="button" style="--delay:${index * 50}ms">
-                <div class="disc-item-head">
-                    <span class="disc-title">${escapeHtml(discipline.SubjectName || "Без названия")}</span>
-                    <span class="grade-chip grade-${grade.tone}">${escapeHtml(grade.text)}</span>
-                </div>
-                <div class="disc-item-meta">
-                    <span>${escapeHtml(formatDisciplineType(discipline.Type))}</span>
-                    <span class="mono">${escapeHtml(points)} б.</span>
-                </div>
-                <div class="disc-item-teachers" title="${escapeHtml(teachers.map((teacher) => formatTeacherShortName(teacher)).join(", ") || "Преподаватели не указаны")}">
-                    ${escapeHtml(teachersPreview || "Преподаватели не указаны")}${escapeHtml(teachersOverflow)}
-                </div>
-            </button>
-        `
-    }).join("")
-
-    els.discList.querySelectorAll(".disc-item").forEach((button) => {
-        button.addEventListener("click", () => {
-            selectDiscipline(button.dataset.id)
-        })
-    })
-}
-
-function getIndexTeachersForDiscipline(disciplineID) {
-    const value = state.teachersMap[String(disciplineID)] || state.teachersMap[disciplineID]
+function getIndexTeachersForDiscipline(teachersMap, disciplineID) {
+    const value = teachersMap[String(disciplineID)] || teachersMap[disciplineID]
     if (!value) return []
     if (Array.isArray(value)) return value
     if (typeof value === "object") return Object.values(value)
     return []
 }
 
-function renderDetailPanels() {
-    const selected = state.disciplines.find((discipline) => String(discipline.ID) === String(state.selectedDisciplineID))
-    if (!selected) {
-        els.subjectTitle.textContent = "Детали дисциплины"
-        els.subjectBadge.textContent = "-"
-        renderEmpty(els.tabPanels.grade, "Выберите дисциплину", "Откройте дисциплину в списке слева.")
-        renderEmpty(els.tabPanels.journal, "Нет журнала", "Данные журнала появятся после выбора дисциплины.")
-        renderEmpty(els.tabPanels.map, "Нет модулей", "Данные о модулях появятся после выбора дисциплины.")
-        renderEmpty(els.tabPanels.teachers, "Нет преподавателей", "Данные о преподавателях появятся после выбора дисциплины.")
-        return
-    }
-
-    const markRaw = state.marks[String(selected.ID)] || state.marks[selected.ID] || ""
-    const grade = getGradePresentation(markRaw, selected)
-
-    els.subjectTitle.textContent = selected.SubjectName || "Дисциплина"
-    els.subjectBadge.textContent = grade.text
-
-    if (state.request.detail === "loading") {
-        renderLoading(els.tabPanels.grade)
-        renderLoading(els.tabPanels.journal)
-        renderLoading(els.tabPanels.map)
-        renderLoading(els.tabPanels.teachers)
-        return
-    }
-
-    if (state.request.detail === "error") {
-        renderError(
-            els.tabPanels.grade,
-            "Не удалось загрузить детали",
-            "Сервер вернул ошибку при запросе конкретной дисциплины.",
-            () => selectDiscipline(state.selectedDisciplineID, { forceReload: true })
-        )
-        renderEmpty(els.tabPanels.journal, "Нет журнала", "Повторите запрос для загрузки журнала.")
-        renderEmpty(els.tabPanels.map, "Нет модулей", "Повторите запрос для загрузки структуры модуля.")
-        renderEmpty(els.tabPanels.teachers, "Нет преподавателей", "Повторите запрос для загрузки преподавателей.")
-        return
-    }
-
-    const cacheKey = `${state.currentSemesterID}:${state.selectedDisciplineID}`
-    const detail = state.detailCache.get(cacheKey) || { journal: null, subject: null }
-
-    renderGradeTab(selected, grade, detail)
-    renderJournalTab(detail)
-    renderMapTab(detail)
-    renderTeachersTab(selected, detail)
-}
-
-function renderGradeTab(discipline, grade, detail) {
-    const subject = detail.subject?.response?.Discipline || detail.journal?.response?.Discipline || discipline
-    const maxRate = subject?.MaxCurrentRate ?? discipline?.MaxCurrentRate ?? "-"
-    const rate = subject?.Rate ?? discipline?.Rate ?? "-"
-
-    els.tabPanels.grade.innerHTML = `
-        <div class="grade-panel">
-            <div class="grade-main grade-${grade.tone}">${escapeHtml(grade.text)}</div>
-            <p class="grade-caption">${escapeHtml(grade.description)}</p>
-            <dl class="kv-grid">
-                <div><dt>Тип</dt><dd>${escapeHtml(formatDisciplineType(subject?.Type))}</dd></div>
-                <div><dt>Семестр</dt><dd>${escapeHtml(state.currentSemesterID || "-")}</dd></div>
-                <div><dt>Баллы</dt><dd class="mono">${escapeHtml(rate)} / ${escapeHtml(maxRate)}</dd></div>
-                <div><dt>ID дисциплины</dt><dd class="mono">${escapeHtml(subject?.ID || discipline?.ID || "-")}</dd></div>
-            </dl>
+function StateLoading() {
+    return html`
+        <div className="state state-loading">
+            <div className="skeleton skeleton-lg"></div>
+            <div className="skeleton"></div>
+            <div className="skeleton"></div>
         </div>
     `
 }
 
-function renderJournalTab(detail) {
-    const journal = Array.isArray(detail.journal?.response?.Journal) ? detail.journal.response.Journal : []
-    if (!journal.length) {
-        renderEmpty(els.tabPanels.journal, "Журнал пуст", "Для этой дисциплины журнал не вернул записей.")
-        return
-    }
-
-    els.tabPanels.journal.innerHTML = `
-        <div class="table-wrap">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Дата</th>
-                        <th>Тип</th>
-                        <th>Тема</th>
-                        <th>Баллы</th>
-                        <th>Посещение</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${journal.map((entry) => {
-                        const date = entry.LessonDate ? new Date(entry.LessonDate).toLocaleDateString("ru-RU") : "-"
-                        const mark = entry.Mark ?? "-"
-                        const attendedText = entry.Attended ? "Да" : "Нет"
-                        const attendedClass = entry.Attended ? "attended" : "missed"
-                        return `
-                            <tr>
-                                <td>${escapeHtml(date)}</td>
-                                <td>${escapeHtml(entry.LessonType || "-")}</td>
-                                <td>${escapeHtml(entry.Topic || "-")}</td>
-                                <td class="mono">${escapeHtml(mark)}</td>
-                                <td class="${attendedClass}">${attendedText}</td>
-                            </tr>
-                        `
-                    }).join("")}
-                </tbody>
-            </table>
+function StateEmpty({ title, description }) {
+    return html`
+        <div className="state state-empty">
+            <h4>${title}</h4>
+            <p>${description}</p>
         </div>
     `
 }
 
-function renderMapTab(detail) {
-    const disciplineMap = detail.subject?.response?.DisciplineMap
-    const submodules = detail.subject?.response?.Submodules || {}
-
-    if (!disciplineMap?.Modules) {
-        renderEmpty(els.tabPanels.map, "Модули недоступны", "API не вернул структуру модулей для этой дисциплины.")
-        return
-    }
-
-    const modules = Object.values(disciplineMap.Modules)
-    els.tabPanels.map.innerHTML = `
-        <div class="module-list">
-            ${modules.map((module) => {
-                const submoduleRows = (module.Submodules || []).map((submoduleID) => {
-                    const info = submodules[submoduleID] || {}
-                    return `
-                        <li>
-                            <span>${escapeHtml(info.Title || `Подмодуль ${submoduleID}`)}</span>
-                            <span class="mono">${escapeHtml(info.Rate ?? "-")} / ${escapeHtml(info.MaxRate ?? "-")}</span>
-                        </li>
-                    `
-                }).join("")
-
-                return `
-                    <article class="module-card">
-                        <header>
-                            <h4>${escapeHtml(module.Title || "Модуль")}</h4>
-                        </header>
-                        <ul>${submoduleRows || "<li><span>Нет подмодулей</span><span class=\"mono\">-</span></li>"}</ul>
-                    </article>
-                `
-            }).join("")}
+function StateError({ title, details, onRetry }) {
+    return html`
+        <div className="state state-error">
+            <h4>${title}</h4>
+            <p>${details}</p>
+            <button className="btn btn-ghost state-retry" type="button" onClick=${onRetry}>Повторить</button>
         </div>
     `
 }
 
-function renderTeachersTab(discipline, detail) {
-    const fromJournal = Array.isArray(detail.journal?.response?.Teachers) ? detail.journal.response.Teachers : []
-    const fromSubject = Array.isArray(detail.subject?.response?.Teachers) ? detail.subject.response.Teachers : []
-    const fromIndex = getIndexTeachersForDiscipline(discipline.ID)
+function App() {
+    const [tokenInput, setTokenInput] = useState("")
+    const [token, setToken] = useState("")
+    const [remember, setRemember] = useState(false)
+    const [view, setView] = useState("login")
+    const [loginStatus, setLoginStatus] = useState({ message: "", type: "" })
 
-    const merged = [...fromJournal, ...fromSubject, ...fromIndex]
-    const uniq = []
-    const seen = new Set()
+    const [semesters, setSemesters] = useState([])
+    const [currentSemesterID, setCurrentSemesterID] = useState("")
+    const [disciplines, setDisciplines] = useState([])
+    const [marks, setMarks] = useState({})
+    const [teachersMap, setTeachersMap] = useState({})
+    const [selectedDisciplineID, setSelectedDisciplineID] = useState("")
+    const [profile, setProfile] = useState(null)
+    const [debugLog, setDebugLog] = useState({})
+    const [request, setRequest] = useState(INITIAL_REQUEST)
+    const [lastMainLoadError, setLastMainLoadError] = useState("")
+    const [activeTab, setActiveTab] = useState("grade")
 
-    for (const teacher of merged) {
-        const key = String(teacher.ID || teacher.TeacherID || teacher.Name || `${teacher.LastName}-${teacher.FirstName}`)
-        if (!seen.has(key)) {
-            seen.add(key)
-            uniq.push(teacher)
+    const detailCacheRef = useRef(new Map())
+
+    const selectedDiscipline = useMemo(
+        () => disciplines.find((discipline) => String(discipline.ID) === String(selectedDisciplineID)) || null,
+        [disciplines, selectedDisciplineID]
+    )
+
+    const detail = useMemo(() => {
+        if (!currentSemesterID || !selectedDisciplineID) {
+            return { journal: null, subject: null }
         }
+        return detailCacheRef.current.get(`${currentSemesterID}:${selectedDisciplineID}`) || { journal: null, subject: null }
+    }, [currentSemesterID, selectedDisciplineID, request.detail])
+
+    const fetchJson = async (endpoint, params = {}) => {
+        const query = buildQuery(params)
+        const url = query ? `${endpoint}?${query}` : endpoint
+        const { res, text, json } = await apiGet(url)
+
+        setDebugLog((prev) => ({ ...prev, [url]: json || text }))
+
+        if (!res.ok) {
+            const errMessage = json?.error || json?.message || `HTTP ${res.status}`
+            const details = json?.details ? ` (${json.details})` : ""
+            throw new Error(errMessage + details)
+        }
+
+        return json
     }
 
-    if (!uniq.length) {
-        renderEmpty(els.tabPanels.teachers, "Список пуст", "Преподаватели для выбранной дисциплины не найдены.")
-        return
-    }
-
-    els.tabPanels.teachers.innerHTML = `
-        <div class="teacher-list">
-            ${uniq.map((teacher) => {
-                const fullName = teacher.Name
-                    || `${teacher.LastName || ""} ${teacher.FirstName || ""} ${teacher.SecondName || ""}`.trim()
-                    || "Без имени"
-                const role = teacher.JobPositionName || "Преподаватель"
-                const initials = `${(teacher.LastName || "").slice(0, 1)}${(teacher.FirstName || "").slice(0, 1)}`.toUpperCase() || "PR"
-                return `
-                    <article class="teacher-row">
-                        <span class="avatar">${escapeHtml(initials)}</span>
-                        <div>
-                            <h4>${escapeHtml(fullName)}</h4>
-                            <p>${escapeHtml(role)}</p>
-                        </div>
-                    </article>
-                `
-            }).join("")}
-        </div>
-    `
-}
-
-function renderProfile() {
-    if (state.request.profile === "loading") {
-        renderLoading(els.profileContent)
-        return
-    }
-
-    if (state.request.profile === "error") {
-        renderError(
-            els.profileContent,
-            "Профиль недоступен",
-            "Эндпоинт профиля недоступен или вернул ошибку.",
-            loadProfile
-        )
-        return
-    }
-
-    const profile = state.profile?.response || state.profile || null
-    if (!profile) {
-        renderEmpty(els.profileContent, "Нет данных", "Профиль студента не вернулся в API ответе.")
-        return
-    }
-
-    const pairs = [
-        ["ФИО", profile.FullName || profile.full_name || profile.Name || "-"],
-        ["Группа", profile.GroupNum || profile.group || "-"],
-        ["Курс", profile.Course || profile.course || "-"],
-        ["Специальность", profile.Speciality || profile.study_direction || "-"],
-        ["Зачетка", profile.RecordBookID || profile.record_book_id || "-"]
-    ]
-
-    els.profileContent.innerHTML = `
-        <dl class="kv-grid kv-compact">
-            ${pairs.map(([key, value]) => `<div><dt>${escapeHtml(key)}</dt><dd>${escapeHtml(value)}</dd></div>`).join("")}
-        </dl>
-    `
-}
-
-function activateTab(tabName) {
-    els.tabButtons.forEach((button) => {
-        button.classList.toggle("tab-active", button.dataset.tab === tabName)
-    })
-
-    Object.entries(els.tabPanels).forEach(([name, panel]) => {
-        panel.classList.toggle("tab-panel-active", name === tabName)
-    })
-}
-
-async function loadSemesters() {
-    state.request.semesters = "loading"
-    try {
-        const json = await fetchJson(ENDPOINTS.semesters, { token: state.token })
+    const loadSemesters = async (authToken) => {
+        setRequest((prev) => ({ ...prev, semesters: "loading" }))
+        const json = await fetchJson(ENDPOINTS.semesters, { token: authToken })
         const response = json?.response || {}
         const list = Array.isArray(response) ? response : Object.values(response)
         list.sort((a, b) => Number(b.ID || 0) - Number(a.ID || 0))
 
-        state.semesters = list
-        state.currentSemesterID = list[0] ? String(list[0].ID) : ""
-        state.request.semesters = "success"
-
-        renderSemesters()
-    } catch (error) {
-        state.request.semesters = "error"
-        throw error
-    }
-}
-
-async function loadIndex() {
-    if (!state.currentSemesterID) {
-        state.disciplines = []
-        state.marks = {}
-        state.teachersMap = {}
-        renderDisciplines()
-        renderDetailPanels()
-        return
+        const nextSemester = list[0] ? String(list[0].ID) : ""
+        setSemesters(list)
+        setCurrentSemesterID(nextSemester)
+        setRequest((prev) => ({ ...prev, semesters: "success" }))
+        return nextSemester
     }
 
-    state.request.index = "loading"
-    renderDisciplines()
-
-    try {
-        const json = await fetchJson(ENDPOINTS.index, {
-            token: state.token,
-            SemesterID: state.currentSemesterID
-        })
-        const response = json?.response || {}
-        state.disciplines = Array.isArray(response.Disciplines) ? response.Disciplines : []
-        state.marks = response.Marks || {}
-        state.teachersMap = response.Teachers || {}
-
-        if (state.selectedDisciplineID) {
-            const stillExists = state.disciplines.some((discipline) => String(discipline.ID) === String(state.selectedDisciplineID))
-            if (!stillExists) {
-                state.selectedDisciplineID = ""
-            }
+    const loadIndex = async (authToken, semesterID) => {
+        if (!semesterID) {
+            setDisciplines([])
+            setMarks({})
+            setTeachersMap({})
+            setRequest((prev) => ({ ...prev, index: "success" }))
+            return
         }
 
-        state.request.index = "success"
-        setMainError("")
-    } catch (error) {
-        state.request.index = "error"
-        setMainError(error.message)
-        throw error
-    } finally {
-        renderDisciplines()
-        renderDetailPanels()
-    }
-}
-
-async function loadProfile() {
-    state.request.profile = "loading"
-    renderProfile()
-
-    try {
-        state.profile = await fetchJson(ENDPOINTS.profile, { token: state.token })
-        state.request.profile = "success"
-    } catch {
-        state.request.profile = "error"
-    }
-
-    renderProfile()
-}
-
-async function selectDiscipline(disciplineID, options = {}) {
-    state.selectedDisciplineID = String(disciplineID)
-    renderDisciplines()
-
-    const cacheKey = `${state.currentSemesterID}:${state.selectedDisciplineID}`
-    if (!options.forceReload && state.detailCache.has(cacheKey)) {
-        state.request.detail = "success"
-        renderDetailPanels()
-        return
-    }
-
-    state.request.detail = "loading"
-    renderDetailPanels()
-
-    try {
-        const [journalResult, subjectResult] = await Promise.all([
-            fetchJson(ENDPOINTS.journal, { token: state.token, id: state.selectedDisciplineID }),
-            fetchJson(ENDPOINTS.subject, { token: state.token, id: state.selectedDisciplineID }).catch(() => null)
-        ])
-
-        state.detailCache.set(cacheKey, {
-            journal: journalResult,
-            subject: subjectResult
-        })
-        state.request.detail = "success"
-    } catch {
-        state.request.detail = "error"
-    }
-
-    renderDetailPanels()
-}
-
-async function loadDashboardData() {
-    setMainError("")
-    await loadSemesters()
-    await Promise.all([loadIndex(), loadProfile()])
-}
-
-async function handleLogin() {
-    const token = els.tokenInput.value.trim()
-    const remember = els.rememberCheck.checked
-
-    if (!isLikelyToken(token)) {
-        setStatus("Введите валидный токен (обычно 36-40 символов).", "error")
-        return
-    }
-
-    state.token = token
-    state.remember = remember
-    setStoredAuth(token, remember)
-    setStatus("Проверка токена...", "")
-
-    try {
-        await loadDashboardData()
-        showView("dashboard")
-        setStatus("")
-    } catch (error) {
-        setStatus(`Ошибка входа: ${error.message}`, "error")
-    }
-}
-
-function handleLogout() {
-    clearStoredAuth()
-
-    state.token = ""
-    state.remember = false
-    state.semesters = []
-    state.currentSemesterID = ""
-    state.disciplines = []
-    state.marks = {}
-    state.teachersMap = {}
-    state.selectedDisciplineID = ""
-    state.detailCache.clear()
-    state.profile = null
-    state.debugLog = {}
-    state.request = {
-        semesters: "idle",
-        index: "idle",
-        detail: "idle",
-        profile: "idle"
-    }
-
-    els.tokenInput.value = ""
-    els.rememberCheck.checked = false
-    renderDisciplines()
-    renderDetailPanels()
-    renderProfile()
-    renderDebug()
-
-    showView("login")
-}
-
-async function handleRefresh() {
-    try {
-        await Promise.all([loadIndex(), loadProfile()])
-        if (state.selectedDisciplineID) {
-            await selectDiscipline(state.selectedDisciplineID, { forceReload: true })
-        }
-    } catch {
-        return
-    }
-}
-
-function bindEvents() {
-    els.btnLogin.addEventListener("click", handleLogin)
-
-    els.tokenInput.addEventListener("keydown", (event) => {
-        if (event.key === "Enter") {
-            handleLogin()
-        }
-    })
-
-    els.btnPaste.addEventListener("click", async () => {
+        setRequest((prev) => ({ ...prev, index: "loading" }))
         try {
-            const text = await navigator.clipboard.readText()
-            els.tokenInput.value = text.trim()
+            const json = await fetchJson(ENDPOINTS.index, {
+                token: authToken,
+                SemesterID: semesterID
+            })
+            const response = json?.response || {}
+            const nextDisciplines = Array.isArray(response.Disciplines) ? response.Disciplines : []
+            setDisciplines(nextDisciplines)
+            setMarks(response.Marks || {})
+            setTeachersMap(response.Teachers || {})
+
+            setSelectedDisciplineID((prev) => {
+                if (!prev) return ""
+                const stillExists = nextDisciplines.some((discipline) => String(discipline.ID) === String(prev))
+                return stillExists ? prev : ""
+            })
+
+            setRequest((prev) => ({ ...prev, index: "success" }))
+            setLastMainLoadError("")
+        } catch (error) {
+            setRequest((prev) => ({ ...prev, index: "error" }))
+            setLastMainLoadError(error.message)
+            throw error
+        }
+    }
+
+    const loadProfile = async (authToken) => {
+        setRequest((prev) => ({ ...prev, profile: "loading" }))
+        try {
+            const result = await fetchJson(ENDPOINTS.profile, { token: authToken })
+            setProfile(result)
+            setRequest((prev) => ({ ...prev, profile: "success" }))
         } catch {
-            setStatus("Браузер не дал доступ к буферу обмена.", "error")
+            setRequest((prev) => ({ ...prev, profile: "error" }))
         }
-    })
+    }
 
-    els.btnLogout.addEventListener("click", handleLogout)
-    els.btnRefresh.addEventListener("click", handleRefresh)
-    els.btnRetryMain.addEventListener("click", loadIndex)
+    const selectDiscipline = async (disciplineID, options = {}) => {
+        const nextID = String(disciplineID)
+        setSelectedDisciplineID(nextID)
 
-    els.semesterSelect.addEventListener("change", async (event) => {
-        state.currentSemesterID = event.target.value
-        state.selectedDisciplineID = ""
+        const cacheKey = `${currentSemesterID}:${nextID}`
+        if (!options.forceReload && detailCacheRef.current.has(cacheKey)) {
+            setRequest((prev) => ({ ...prev, detail: "success" }))
+            return
+        }
+
+        setRequest((prev) => ({ ...prev, detail: "loading" }))
+
         try {
-            await loadIndex()
+            const [journalResult, subjectResult] = await Promise.all([
+                fetchJson(ENDPOINTS.journal, { token, id: nextID }),
+                fetchJson(ENDPOINTS.subject, { token, id: nextID }).catch(() => null)
+            ])
+
+            detailCacheRef.current.set(cacheKey, {
+                journal: journalResult,
+                subject: subjectResult
+            })
+            setRequest((prev) => ({ ...prev, detail: "success" }))
+        } catch {
+            setRequest((prev) => ({ ...prev, detail: "error" }))
+        }
+    }
+
+    const loadDashboardData = async (authToken) => {
+        setLastMainLoadError("")
+        const semesterID = await loadSemesters(authToken)
+        await Promise.all([loadIndex(authToken, semesterID), loadProfile(authToken)])
+    }
+
+    const runLogin = async (authToken, rememberFlag, isAuto = false) => {
+        setToken(authToken)
+        setRemember(rememberFlag)
+        setStoredAuth(authToken, rememberFlag)
+        if (!isAuto) {
+            setLoginStatus({ message: "Проверка токена...", type: "" })
+        }
+
+        try {
+            await loadDashboardData(authToken)
+            setView("dashboard")
+            setLoginStatus({ message: "", type: "" })
+        } catch (error) {
+            if (isAuto) {
+                setView("login")
+                setLoginStatus({ message: "Не удалось автоматически войти. Проверьте токен.", type: "error" })
+                return
+            }
+            setLoginStatus({ message: `Ошибка входа: ${error.message}`, type: "error" })
+        }
+    }
+
+    const handleLogin = async () => {
+        const authToken = tokenInput.trim()
+        if (!isLikelyToken(authToken)) {
+            setLoginStatus({ message: "Введите валидный токен (обычно 36-40 символов).", type: "error" })
+            return
+        }
+
+        await runLogin(authToken, remember)
+    }
+
+    const handleLogout = () => {
+        clearStoredAuth()
+        setTokenInput("")
+        setToken("")
+        setRemember(false)
+        setSemesters([])
+        setCurrentSemesterID("")
+        setDisciplines([])
+        setMarks({})
+        setTeachersMap({})
+        setSelectedDisciplineID("")
+        setProfile(null)
+        setDebugLog({})
+        detailCacheRef.current.clear()
+        setRequest(INITIAL_REQUEST)
+        setLastMainLoadError("")
+        setActiveTab("grade")
+        setLoginStatus({ message: "", type: "" })
+        setView("login")
+    }
+
+    const handleRefresh = async () => {
+        try {
+            await Promise.all([loadIndex(token, currentSemesterID), loadProfile(token)])
+            if (selectedDisciplineID) {
+                await selectDiscipline(selectedDisciplineID, { forceReload: true })
+            }
         } catch {
             return
         }
-    })
-
-    els.tabButtons.forEach((button) => {
-        button.addEventListener("click", () => activateTab(button.dataset.tab))
-    })
-}
-
-async function bootstrap() {
-    bindEvents()
-    activateTab("grade")
-    renderDisciplines()
-    renderDetailPanels()
-    renderProfile()
-
-    const storedAuth = getStoredAuth()
-    if (storedAuth.remember && storedAuth.token) {
-        els.tokenInput.value = storedAuth.token
-        els.rememberCheck.checked = true
-        state.token = storedAuth.token
-        state.remember = true
-
-        try {
-            await loadDashboardData()
-            showView("dashboard")
-        } catch {
-            showView("login")
-            setStatus("Не удалось автоматически войти. Проверьте токен.", "error")
-        }
-    } else {
-        showView("login")
     }
+
+    const handleSemesterChange = async (event) => {
+        const semesterID = event.target.value
+        setCurrentSemesterID(semesterID)
+        setSelectedDisciplineID("")
+        try {
+            await loadIndex(token, semesterID)
+        } catch {
+            return
+        }
+    }
+
+    const handlePaste = async () => {
+        try {
+            const text = await navigator.clipboard.readText()
+            setTokenInput(text.trim())
+        } catch {
+            setLoginStatus({ message: "Браузер не дал доступ к буферу обмена.", type: "error" })
+        }
+    }
+
+    useEffect(() => {
+        const storedAuth = getStoredAuth()
+        if (storedAuth.remember && storedAuth.token) {
+            setTokenInput(storedAuth.token)
+            setRemember(true)
+            runLogin(storedAuth.token, true, true)
+        }
+    }, [])
+
+    const mergedTeachers = useMemo(() => {
+        if (!selectedDiscipline) return []
+        const fromJournal = Array.isArray(detail.journal?.response?.Teachers) ? detail.journal.response.Teachers : []
+        const fromSubject = Array.isArray(detail.subject?.response?.Teachers) ? detail.subject.response.Teachers : []
+        const fromIndex = getIndexTeachersForDiscipline(teachersMap, selectedDiscipline.ID)
+        const merged = [...fromJournal, ...fromSubject, ...fromIndex]
+        const uniq = []
+        const seen = new Set()
+
+        for (const teacher of merged) {
+            const key = String(teacher.ID || teacher.TeacherID || teacher.Name || `${teacher.LastName}-${teacher.FirstName}`)
+            if (!seen.has(key)) {
+                seen.add(key)
+                uniq.push(teacher)
+            }
+        }
+
+        return uniq
+    }, [detail, selectedDiscipline, teachersMap])
+
+    const renderDisciplines = () => {
+        if (request.index === "loading") {
+            return html`<${StateLoading} />`
+        }
+
+        if (!disciplines.length) {
+            return html`<${StateEmpty} title="Нет дисциплин" description="В выбранном семестре не найдено дисциплин." />`
+        }
+
+        return disciplines.map((discipline, index) => {
+            const id = String(discipline.ID)
+            const mark = marks[id] || marks[discipline.ID] || ""
+            const grade = getGradePresentation(mark, discipline)
+            const active = selectedDisciplineID === id ? "disc-item-active" : ""
+            const teachers = getIndexTeachersForDiscipline(teachersMap, id)
+            const teachersPreview = teachers.slice(0, 2).map((teacher) => formatTeacherShortName(teacher)).join(" · ")
+            const teachersOverflow = teachers.length > 2 ? ` +${teachers.length - 2}` : ""
+            const points = discipline.MaxCurrentRate ? `${discipline.Rate || 0} / ${discipline.MaxCurrentRate}` : `${discipline.Rate || 0}`
+
+            return html`
+                <button
+                    key=${id}
+                    className=${`disc-item ${active}`.trim()}
+                    data-id=${id}
+                    type="button"
+                    style=${{ "--delay": `${index * 50}ms` }}
+                    onClick=${() => selectDiscipline(id)}
+                >
+                    <div className="disc-item-head">
+                        <span className="disc-title">${discipline.SubjectName || "Без названия"}</span>
+                        <span className=${`grade-chip grade-${grade.tone}`}>${grade.text}</span>
+                    </div>
+                    <div className="disc-item-meta">
+                        <span>${formatDisciplineType(discipline.Type)}</span>
+                        <span className="mono">${points} б.</span>
+                    </div>
+                    <div
+                        className="disc-item-teachers"
+                        title=${teachers.map((teacher) => formatTeacherShortName(teacher)).join(", ") || "Преподаватели не указаны"}
+                    >
+                        ${teachersPreview || "Преподаватели не указаны"}${teachersOverflow}
+                    </div>
+                </button>
+            `
+        })
+    }
+
+    const renderGradeTab = () => {
+        if (!selectedDiscipline) {
+            return html`<${StateEmpty} title="Выберите дисциплину" description="Откройте дисциплину в списке слева." />`
+        }
+
+        if (request.detail === "loading") {
+            return html`<${StateLoading} />`
+        }
+
+        if (request.detail === "error") {
+            return html`
+                <${StateError}
+                    title="Не удалось загрузить детали"
+                    details="Сервер вернул ошибку при запросе конкретной дисциплины."
+                    onRetry=${() => selectDiscipline(selectedDisciplineID, { forceReload: true })}
+                />
+            `
+        }
+
+        const markRaw = marks[String(selectedDiscipline.ID)] || marks[selectedDiscipline.ID] || ""
+        const grade = getGradePresentation(markRaw, selectedDiscipline)
+        const subject = detail.subject?.response?.Discipline || detail.journal?.response?.Discipline || selectedDiscipline
+
+        return html`
+            <div className="grade-panel">
+                <div className=${`grade-main grade-${grade.tone}`}>${grade.text}</div>
+                <p className="grade-caption">${grade.description}</p>
+                <dl className="kv-grid">
+                    <div><dt>Тип</dt><dd>${formatDisciplineType(subject?.Type)}</dd></div>
+                    <div><dt>Семестр</dt><dd>${currentSemesterID || "-"}</dd></div>
+                    <div><dt>Баллы</dt><dd className="mono">${subject?.Rate ?? selectedDiscipline?.Rate ?? "-"} / ${subject?.MaxCurrentRate ?? selectedDiscipline?.MaxCurrentRate ?? "-"}</dd></div>
+                    <div><dt>ID дисциплины</dt><dd className="mono">${subject?.ID || selectedDiscipline?.ID || "-"}</dd></div>
+                </dl>
+            </div>
+        `
+    }
+
+    const renderJournalTab = () => {
+        if (!selectedDiscipline) {
+            return html`<${StateEmpty} title="Нет журнала" description="Данные журнала появятся после выбора дисциплины." />`
+        }
+
+        if (request.detail === "loading") {
+            return html`<${StateLoading} />`
+        }
+
+        const journal = Array.isArray(detail.journal?.response?.Journal) ? detail.journal.response.Journal : []
+        if (!journal.length) {
+            return html`<${StateEmpty} title="Журнал пуст" description="Для этой дисциплины журнал не вернул записей." />`
+        }
+
+        return html`
+            <div className="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Дата</th>
+                            <th>Тип</th>
+                            <th>Тема</th>
+                            <th>Баллы</th>
+                            <th>Посещение</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${journal.map((entry, idx) => {
+                            const date = entry.LessonDate ? new Date(entry.LessonDate).toLocaleDateString("ru-RU") : "-"
+                            const mark = entry.Mark ?? "-"
+                            const attendedText = entry.Attended ? "Да" : "Нет"
+                            const attendedClass = entry.Attended ? "attended" : "missed"
+                            return html`
+                                <tr key=${`${idx}-${entry.ID || date}`}>
+                                    <td>${date}</td>
+                                    <td>${entry.LessonType || "-"}</td>
+                                    <td>${entry.Topic || "-"}</td>
+                                    <td className="mono">${mark}</td>
+                                    <td className=${attendedClass}>${attendedText}</td>
+                                </tr>
+                            `
+                        })}
+                    </tbody>
+                </table>
+            </div>
+        `
+    }
+
+    const renderMapTab = () => {
+        if (!selectedDiscipline) {
+            return html`<${StateEmpty} title="Нет модулей" description="Данные о модулях появятся после выбора дисциплины." />`
+        }
+
+        if (request.detail === "loading") {
+            return html`<${StateLoading} />`
+        }
+
+        const disciplineMap = detail.subject?.response?.DisciplineMap
+        const submodules = detail.subject?.response?.Submodules || {}
+        if (!disciplineMap?.Modules) {
+            return html`<${StateEmpty} title="Модули недоступны" description="API не вернул структуру модулей для этой дисциплины." />`
+        }
+
+        const modules = Object.values(disciplineMap.Modules)
+        return html`
+            <div className="module-list">
+                ${modules.map((module, idx) => html`
+                    <article key=${`${idx}-${module.Title || "module"}`} className="module-card">
+                        <header>
+                            <h4>${module.Title || "Модуль"}</h4>
+                        </header>
+                        <ul>
+                            ${(module.Submodules || []).map((submoduleID) => {
+                                const info = submodules[submoduleID] || {}
+                                return html`
+                                    <li key=${String(submoduleID)}>
+                                        <span>${info.Title || `Подмодуль ${submoduleID}`}</span>
+                                        <span className="mono">${info.Rate ?? "-"} / ${info.MaxRate ?? "-"}</span>
+                                    </li>
+                                `
+                            })}
+                            ${(module.Submodules || []).length === 0 && html`<li><span>Нет подмодулей</span><span className="mono">-</span></li>`}
+                        </ul>
+                    </article>
+                `)}
+            </div>
+        `
+    }
+
+    const renderTeachersTab = () => {
+        if (!selectedDiscipline) {
+            return html`<${StateEmpty} title="Нет преподавателей" description="Данные о преподавателях появятся после выбора дисциплины." />`
+        }
+
+        if (request.detail === "loading") {
+            return html`<${StateLoading} />`
+        }
+
+        if (!mergedTeachers.length) {
+            return html`<${StateEmpty} title="Список пуст" description="Преподаватели для выбранной дисциплины не найдены." />`
+        }
+
+        return html`
+            <div className="teacher-list">
+                ${mergedTeachers.map((teacher, idx) => {
+                    const fullName = teacher.Name
+                        || `${teacher.LastName || ""} ${teacher.FirstName || ""} ${teacher.SecondName || ""}`.trim()
+                        || "Без имени"
+                    const role = teacher.JobPositionName || "Преподаватель"
+                    const initials = `${(teacher.LastName || "").slice(0, 1)}${(teacher.FirstName || "").slice(0, 1)}`.toUpperCase() || "PR"
+                    return html`
+                        <article key=${String(teacher.ID || teacher.TeacherID || idx)} className="teacher-row">
+                            <span className="avatar">${initials}</span>
+                            <div>
+                                <h4>${fullName}</h4>
+                                <p>${role}</p>
+                            </div>
+                        </article>
+                    `
+                })}
+            </div>
+        `
+    }
+
+    const renderProfile = () => {
+        if (request.profile === "loading") {
+            return html`<${StateLoading} />`
+        }
+
+        if (request.profile === "error") {
+            return html`
+                <${StateError}
+                    title="Профиль недоступен"
+                    details="Эндпоинт профиля недоступен или вернул ошибку."
+                    onRetry=${() => loadProfile(token)}
+                />
+            `
+        }
+
+        const profileData = profile?.response || profile || null
+        if (!profileData) {
+            return html`<${StateEmpty} title="Нет данных" description="Профиль студента не вернулся в API ответе." />`
+        }
+
+        const pairs = [
+            ["ФИО", profileData.FullName || profileData.full_name || profileData.Name || "-"],
+            ["Группа", profileData.GroupNum || profileData.group || "-"],
+            ["Курс", profileData.Course || profileData.course || "-"],
+            ["Специальность", profileData.Speciality || profileData.study_direction || "-"],
+            ["Зачетка", profileData.RecordBookID || profileData.record_book_id || "-"]
+        ]
+
+        return html`
+            <dl className="kv-grid kv-compact">
+                ${pairs.map(([key, value]) => html`<div key=${key}><dt>${key}</dt><dd>${value}</dd></div>`)}
+            </dl>
+        `
+    }
+
+    const selectedMark = selectedDiscipline
+        ? marks[String(selectedDiscipline.ID)] || marks[selectedDiscipline.ID] || ""
+        : ""
+    const selectedGrade = selectedDiscipline ? getGradePresentation(selectedMark, selectedDiscipline) : { text: "-" }
+
+    return html`
+        <div>
+            <section className=${`view ${view === "login" ? "view-active" : ""}`.trim()} aria-labelledby="loginTitle">
+                <div className="auth-layout">
+                    <aside className="auth-aside">
+                        <p className="kicker">Топ дс брс</p>
+                        <h1 id="loginTitle">Сервис БРС ЮФУ</h1>
+                        <p className="lead">Сильный человек это не тот кто поднимает тяжести или управляет компанией, а тот кто получил 60 баллов по непре</p>
+                        <a className="link-inline" target="_blank" rel="noopener noreferrer" href="https://grade.sfedu.ru/sign?goal=/student/authtokenget">
+                            Получить токен доступа
+                        </a>
+                    </aside>
+
+                    <div className="auth-card" aria-live="polite">
+                        <label className="field">
+                            <span>Токен</span>
+                            <input
+                                className="input mono"
+                                type="text"
+                                placeholder="40 символов hex"
+                                maxLength="40"
+                                autoComplete="off"
+                                value=${tokenInput}
+                                onInput=${(event) => setTokenInput(event.target.value)}
+                                onKeyDown=${(event) => event.key === "Enter" && handleLogin()}
+                            />
+                        </label>
+
+                        <div className="auth-actions-row">
+                            <label className="check">
+                                <input
+                                    type="checkbox"
+                                    checked=${remember}
+                                    onChange=${(event) => setRemember(event.target.checked)}
+                                />
+                                <span>Запомнить на этом устройстве</span>
+                            </label>
+                            <button className="btn btn-ghost" type="button" onClick=${handlePaste}>Вставить</button>
+                        </div>
+
+                        <div className="auth-buttons">
+                            <button className="btn btn-primary" type="button" onClick=${handleLogin}>Войти</button>
+                        </div>
+
+                        <p className=${`status ${loginStatus.message ? "status-visible" : ""} ${loginStatus.type ? `status-${loginStatus.type}` : ""}`.trim()} role="status">
+                            ${loginStatus.message}
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <section className=${`view ${view === "dashboard" ? "view-active" : ""}`.trim()} aria-label="Панель оценок">
+                <header className="topbar">
+                    <div>
+                        <p className="kicker">БРС ЮФУ</p>
+                        <h2>Мои дисциплины</h2>
+                    </div>
+                    <div className="topbar-actions">
+                        <button className="btn btn-ghost" type="button" onClick=${handleRefresh}>Обновить</button>
+                        <button className="btn btn-danger" type="button" onClick=${handleLogout}>Выйти</button>
+                    </div>
+                </header>
+
+                <section className="toolbar card">
+                    <label className="field field-inline">
+                        <span>Семестр</span>
+                        <select className="input select" value=${currentSemesterID} onChange=${handleSemesterChange}>
+                            ${semesters.length === 0
+                                ? html`<option value="">${request.semesters === "loading" ? "Загрузка..." : "Семестры не найдены"}</option>`
+                                : semesters.map((semester) => html`
+                                    <option key=${String(semester.ID)} value=${String(semester.ID)}>
+                                        ${formatSemesterLabel(semester)}
+                                    </option>
+                                `)}
+                        </select>
+                    </label>
+                    <div className="toolbar-actions">
+                        <button className="btn btn-ghost" type="button" hidden=${!lastMainLoadError} onClick=${() => loadIndex(token, currentSemesterID)}>
+                            Повторить запрос
+                        </button>
+                    </div>
+                </section>
+
+                <main className="dashboard-grid">
+                    <section className="card panel-list">
+                        <div className="panel-head">
+                            <h3>Список дисциплин</h3>
+                            <span className="pill">${String(disciplines.length)}</span>
+                        </div>
+                        <div className="panel-body">${renderDisciplines()}</div>
+                    </section>
+
+                    <section className="detail-column">
+                        <article className="card panel-detail">
+                            <div className="panel-head">
+                                <h3>${selectedDiscipline?.SubjectName || "Детали дисциплины"}</h3>
+                                <span className="pill">${selectedGrade.text || "-"}</span>
+                            </div>
+
+                            <nav className="tabs" aria-label="Вкладки дисциплины">
+                                ${["grade", "journal", "map", "teachers"].map((tab) => html`
+                                    <button
+                                        key=${tab}
+                                        className=${`tab ${activeTab === tab ? "tab-active" : ""}`.trim()}
+                                        type="button"
+                                        onClick=${() => setActiveTab(tab)}
+                                    >
+                                        ${tab === "grade" ? "Оценка" : tab === "journal" ? "Журнал" : tab === "map" ? "Модули" : "Преподаватели"}
+                                    </button>
+                                `)}
+                            </nav>
+
+                            <div className="panel-body">
+                                <section className=${`tab-panel ${activeTab === "grade" ? "tab-panel-active" : ""}`.trim()}>${renderGradeTab()}</section>
+                                <section className=${`tab-panel ${activeTab === "journal" ? "tab-panel-active" : ""}`.trim()}>${renderJournalTab()}</section>
+                                <section className=${`tab-panel ${activeTab === "map" ? "tab-panel-active" : ""}`.trim()}>${renderMapTab()}</section>
+                                <section className=${`tab-panel ${activeTab === "teachers" ? "tab-panel-active" : ""}`.trim()}>${renderTeachersTab()}</section>
+                            </div>
+                        </article>
+
+                        <article className="card panel-profile">
+                            <div className="panel-head">
+                                <h3>Профиль студента</h3>
+                            </div>
+                            <div className="panel-body">${renderProfile()}</div>
+                        </article>
+                    </section>
+                </main>
+
+                <details className="card debug-card">
+                    <summary>Debug API</summary>
+                    <pre>${JSON.stringify(debugLog, null, 2)}</pre>
+                </details>
+            </section>
+        </div>
+    `
 }
 
-bootstrap()
+createRoot(document.getElementById("app")).render(html`<${App} />`)
