@@ -30,16 +30,30 @@ api/
       subject.js               # GET /api/student/discipline/subject
 
 public/
-  index.html                   # main UI
-  app.js                       # frontend state + API + rendering
+  index.html                   # main UI (minimal React root)
+  app.js                       # React SPA (React 18 + htm, no build step)
   styles.css                   # visual system + responsive layout
+  favicon.svg                  # app icon
 
 server.js                      # Express app that mounts same handlers from api/*
 package.json                   # scripts (start/dev)
 vercel.json                    # Vercel static settings
 ```
 
+### Frontend: React SPA
+
+- **Stack**: React 18 + htm (JSX-like via template literals) + ReactDOM
+- **Import**: ESM from CDN (`esm.sh/react@18`, `esm.sh/react-dom@18`, `esm.sh/htm@3`)
+- **Build**: None required — runs directly in browser as ESM module
+- **File structure**: All React code in single `public/app.js` (837 lines)
+- **Styling**: Vanilla CSS in `public/styles.css` (no CSS-in-JS)
+- **State**: React hooks (`useState`, `useMemo`, `useEffect`, `useRef`)
+
+> **Note on future migration**: If needed, React can later be migrated to a Vite-based build (using JSX, separate component files in `src/`, etc.). Current approach (htm + CDN) is intentionally simple — no build step needed, works directly in browser.
+
 Key invariant: `server.js` must call handlers from `api/*`, not duplicate endpoint logic.
+
+Key invariant: All React code lives in `public/app.js` — no separate `src/` build step.
 
 ---
 
