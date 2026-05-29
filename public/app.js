@@ -4,6 +4,21 @@ import htm from "https://esm.sh/htm@3.1.1"
 
 const html = htm.bind(React.createElement)
 
+const ACCENT_COLORS = ["lavender", "amethyst", "orange", "blue"]
+
+function getRandomAccentColor(index) {
+    return ACCENT_COLORS[index % ACCENT_COLORS.length]
+}
+
+function getStoredTheme() {
+    return localStorage.getItem("grade_theme") || "light"
+}
+
+function setStoredTheme(theme) {
+    localStorage.setItem("grade_theme", theme)
+    document.documentElement.setAttribute("data-theme", theme === "dark" ? "dark" : "")
+}
+
 const ENDPOINTS = {
     semesters: "/api/student/semester_list",
     index: "/api/student/index",
@@ -184,7 +199,7 @@ function StateError({ title, details, onRetry }) {
         <div className="state state-error">
             <h4>${title}</h4>
             <p>${details}</p>
-            <button className="btn btn-ghost state-retry" type="button" onClick=${onRetry}>Повторить</button>
+            <button className="btn" style=${{ background: "var(--accent-amethyst)", color: "var(--text-primary)" }} type="button" onClick=${onRetry}>Повторить</button>
         </div>
     `
 }
@@ -206,6 +221,7 @@ function App() {
     const [request, setRequest] = useState(INITIAL_REQUEST)
     const [lastMainLoadError, setLastMainLoadError] = useState("")
     const [activeTab, setActiveTab] = useState("grade")
+    const [theme, setTheme] = useState(getStoredTheme())
 
     const detailCacheRef = useRef(new Map())
 
@@ -405,6 +421,14 @@ function App() {
         }
     }
 
+    const toggleTheme = () => {
+        setTheme((prev) => (prev === "light" ? "dark" : "light"))
+    }
+
+    useEffect(() => {
+        setStoredTheme(theme)
+    }, [theme])
+
     useEffect(() => {
         const storedAuth = getStoredAuth()
         if (storedAuth.remember && storedAuth.token) {
@@ -452,6 +476,8 @@ function App() {
             const teachersPreview = teachers.slice(0, 2).map((teacher) => formatTeacherShortName(teacher)).join(" · ")
             const teachersOverflow = teachers.length > 2 ? ` +${teachers.length - 2}` : ""
             const points = discipline.MaxCurrentRate ? `${discipline.Rate || 0} / ${discipline.MaxCurrentRate}` : `${discipline.Rate || 0}`
+            const percentNum = discipline.MaxCurrentRate > 0 ? Math.round(((discipline.Rate || 0) / discipline.MaxCurrentRate) * 100) : 0
+            const accentColor = getRandomAccentColor(index)
 
             return html`
                 <button
@@ -459,16 +485,19 @@ function App() {
                     className=${`disc-item ${active}`.trim()}
                     data-id=${id}
                     type="button"
-                    style=${{ "--delay": `${index * 50}ms` }}
+                    style=${{ "--delay": `${index * 40}ms`, background: `var(--accent-${accentColor})` }}
                     onClick=${() => selectDiscipline(id)}
                 >
                     <div className="disc-item-head">
                         <span className="disc-title">${discipline.SubjectName || "Без названия"}</span>
-                        <span className=${`grade-chip grade-${grade.tone}`}>${grade.text}</span>
+                        <span className="grade-tag">${grade.text}</span>
                     </div>
                     <div className="disc-item-meta">
                         <span>${formatDisciplineType(discipline.Type)}</span>
                         <span className="mono">${points} б.</span>
+                    </div>
+                    <div className="progress-bar">
+                        <div className="progress-bar-fill" style=${{ width: `${percentNum}%` }}></div>
                     </div>
                     <div
                         className="disc-item-teachers"
@@ -504,10 +533,12 @@ function App() {
         const grade = getGradePresentation(markRaw, selectedDiscipline)
         const subject = detail.subject?.response?.Discipline || detail.journal?.response?.Discipline || selectedDiscipline
 
+        const accentColor = getRandomAccentColor(0)
+
         return html`
             <div className="grade-panel">
-                <div className=${`grade-main grade-${grade.tone}`}>${grade.text}</div>
-                <p className="grade-caption">${grade.description}</p>
+                <div className=${`grade-circle ${accentColor}`}>${grade.text}</div>
+                <p className="grade-caption">Процент освоения дисциплины</p>
                 <dl className="kv-grid">
                     <div><dt>Тип</dt><dd>${formatDisciplineType(subject?.Type)}</dd></div>
                     <div><dt>Семестр</dt><dd>${currentSemesterID || "-"}</dd></div>
@@ -699,14 +730,17 @@ function App() {
             </section>
 
             <section className=${`view ${view === "dashboard" ? "view-active" : ""}`.trim()} aria-label="Панель оценок">
+                <button className="theme-toggle" type="button" onClick=${toggleTheme} title="Сменить тему">
+                    ${theme === "dark" ? "🌙" : "☀️"}
+                </button>
                 <header className="topbar">
                     <div>
                         <p className="kicker">БРС ЮФУ</p>
                         <h2>Мои дисциплины</h2>
                     </div>
                     <div className="topbar-actions">
-                        <button className="btn btn-ghost" type="button" onClick=${handleRefresh}>Обновить</button>
-                        <button className="btn btn-danger" type="button" onClick=${handleLogout}>Выйти</button>
+                        <button className="btn btn-primary" type="button" onClick=${handleRefresh}>Обновить</button>
+                        <button className="btn btn-accent" type="button" onClick=${handleLogout}>Выйти</button>
                     </div>
                 </header>
 
