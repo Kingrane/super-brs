@@ -24,7 +24,6 @@ api/
   student/
     semester_list.js           # GET /api/student/semester_list
     index.js                   # GET /api/student/index
-    profile.js                 # GET /api/student/profile
     discipline/
       journal.js               # GET /api/student/discipline/journal
       subject.js               # GET /api/student/discipline/subject
@@ -66,7 +65,6 @@ Student-facing endpoints to support at minimum:
 - `GET /api/v1/student`
 - `GET /api/v1/student/discipline/journal`
 - `GET /api/v1/student/discipline/subject`
-- `GET /api/v1/student/profile` (or nearest available profile route)
 
 When adding new functionality, follow this policy:
 1. Add serverless handler in `api/student/**`.
@@ -124,7 +122,6 @@ Each async block must support:
 - Semesters and discipline index are loaded first.
 - Discipline details loaded per discipline, cached by key:
   - `semesterID:disciplineID`
-- Profile loaded independently and should fail gracefully.
 
 ### Rendering Requirements
 - Discipline list must be interactive and keyboard-safe.
@@ -209,3 +206,68 @@ When updating this repo, avoid hidden drift:
 3. If a new endpoint is added, wire it in both serverless and local Express path.
 
 Use small, verifiable increments. Prefer correctness and stability over flashy rewrites.
+
+---
+
+## React Native Migration Plan
+
+### Overview
+
+Цель - создать мобильное приложение из существующего web-приложения БРС ЮФУ.
+
+### Что можно переиспользовать
+
+- **Бизнес-логика**: API вызовы, валидация токена, кеширование данных
+- **Состояние**: React hooks (`useState`, `useMemo`, `useEffect`, `useRef`)
+- **Архитектура данных**: структуры Semester, Discipline, Journal, Module
+
+### Что переписывать
+
+| Компонент | Web (текущее) | Mobile (новое) |
+|-----------|---------------|----------------|
+| UI фреймворк | React + htm | React Native |
+| Навигация | browser routing | React Navigation |
+| Стилизация | CSS / styles.css | StyleSheet |
+| Компоненты | `<div>`, `<span>`, `<button>` | `<View>`, `<Text>`, `<TouchableOpacity>` |
+| Хранение | localStorage | AsyncStorage |
+| HTTP | fetch | fetch / axios |
+
+### Этапы миграции
+
+#### Этап 1: Подготовка (1-2 дня)
+- [ ] Настроить проект: `npx react-native init BRSApp`
+- [ ] Создать папку `src/api` - скопировать логику API из `public/app.js`
+- [ ] Настроить React Navigation (Stack + Bottom Tabs)
+
+#### Этап 2: Экраны авторизации (1 день)
+- [ ] Экран входа (LoginScreen)
+- [ ] Логика валидации токена
+- [ ] Сохранение токена в AsyncStorage
+
+#### Этап 3: Основные экраны (2-3 дня)
+- [ ] Экран списка семестров (SemesterListScreen)
+- [ ] Экран списка дисциплин (DisciplineListScreen)
+- [ ] Экран деталей дисциплины с табами (GradeDetailScreen)
+
+#### Этап 4: UI компоненты (1-2 дня)
+- [ ] Создать переиспользуемые компоненты: Card, Button, Input, Badge
+- [ ] Адаптировать цветовую систему из styles.css
+
+#### Этап 5: Сборка (1 день)
+- [ ] Настроить Android/iOS сборку
+- [ ] Протестировать на устройстве
+
+### Альтернатива: Capacitor / PWA
+
+Если полноценное нативное приложение не требуется:
+- Использовать **Capacitor** для обёртки web-приложения
+- Минусы: webview, не нативный UI
+- Плюсы: минимум изменений кода
+
+### Рекомендация
+
+Для БРС ЮФУ оптимален **React Native** (полная миграция) учитывая:
+- Ежедневное использование студентами
+- Нужны push-уведомления о новых баллах
+- Работа офлайн (кеш оценок)
+- Нативный UI важнее для мобильного опыта
