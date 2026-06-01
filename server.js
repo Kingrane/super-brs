@@ -6,7 +6,6 @@ import semesterListHandler from "./api/student/semester_list.js"
 import studentIndexHandler from "./api/student/index.js"
 import disciplineJournalHandler from "./api/student/discipline/journal.js"
 import disciplineSubjectHandler from "./api/student/discipline/subject.js"
-import studentProfileHandler from "./api/student/profile.js"
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -35,7 +34,6 @@ app.all("/api/student/semester_list", adaptHandler(semesterListHandler))
 app.all("/api/student/index", adaptHandler(studentIndexHandler))
 app.all("/api/student/discipline/journal", adaptHandler(disciplineJournalHandler))
 app.all("/api/student/discipline/subject", adaptHandler(disciplineSubjectHandler))
-app.all("/api/student/profile", adaptHandler(studentProfileHandler))
 
 app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}`)
