@@ -1791,7 +1791,7 @@ textarea.input {
 
     border: none;
 
-    border-bottom: 1px solid var(--rule-soft);
+    border-bottom: 1px dashed var(--rule-light);
 
     border-radius: 0;
 
@@ -2365,7 +2365,7 @@ textarea.input {
 
     align-items: baseline;
 
-    border-bottom: 1px solid var(--rule-soft);
+    border-bottom: 1px dashed var(--rule-light);
 
     padding: 0.55rem 0;
 
@@ -2455,7 +2455,7 @@ thead {
 th,
 td {
 
-    border-bottom: 1px solid var(--rule-soft);
+    border-bottom: 1px dashed var(--rule-light);
 
     text-align: left;
 
@@ -2526,9 +2526,7 @@ tbody tr:last-child td {
 
 .module-card {
 
-    border: none;
-
-    border-bottom: 1px solid var(--rule-soft);
+    border-bottom: 1px dashed var(--ink-faint);
 
     background: transparent;
 
@@ -2676,7 +2674,7 @@ tbody tr:last-child td {
 
     border: none;
 
-    border-bottom: 1px solid var(--rule-soft);
+    border-bottom: 1px dashed var(--rule-light);
 
     border-radius: 0;
 

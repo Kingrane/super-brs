@@ -5,6 +5,7 @@
 This repository is an API-first web client for SFEDU BRS (`grade.sfedu.ru`) with:
 - local runtime via Express (`server.js` + `public/*`)
 - deploy runtime via Vercel serverless handlers (`api/*`)
+- native Android app via React Native (`BRSApp/*`)
 
 Primary mission for any contributor/agent:
 1. Keep API behavior consistent across local and Vercel runtimes.
@@ -37,22 +38,54 @@ public/
 server.js                      # Express app that mounts same handlers from api/*
 package.json                   # scripts (start/dev)
 vercel.json                    # Vercel static settings
+
+BRSApp/                        # React Native mobile app (Android)
+  index.js                     # entry point
+  App.tsx                      # root component
+  src/
+    api/client.js              # API fetch layer (same endpoints)
+    utils/storage.js            # AsyncStorage wrapper
+    utils/helpers.js            # shared helpers (formatting, validation)
+    theme/index.js              # design tokens (colors, fonts, spacing)
+    components/
+      StateLoading.js           # loading skeleton
+      StateEmpty.js             # empty state
+      StateError.js             # error state with retry
+      GradeBadge.js             # grade chip (colored by tone)
+      DisciplineCard.js         # discipline in list
+      TeacherRow.js             # teacher avatar + name
+      ModuleCard.js             # module with submodules
+      JournalTable.js           # scrollable journal table
+      SemesterPicker.js         # semester chip selector
+    screens/
+      LoginScreen.js            # token entry + remember + auto-login
+      DashboardScreen.js        # semester picker + discipline list
+      DetailScreen.js           # tabs: grade, journal, modules, teachers
+    navigation/
+      AppNavigator.js           # Stack navigator (Login → Main → Detail)
+  android/                      # native Android project (generated)
+  ios/                          # native iOS project (generated)
 ```
 
-### Frontend: React SPA
+### Frontend: React SPA (Web)
 
 - **Stack**: React 18 + htm (JSX-like via template literals) + ReactDOM
 - **Import**: ESM from CDN (`esm.sh/react@18`, `esm.sh/react-dom@18`, `esm.sh/htm@3`)
 - **Build**: None required — runs directly in browser as ESM module
-- **File structure**: All React code in single `public/app.js` (837 lines)
+- **File structure**: All React code in single `public/app.js`
 - **Styling**: Vanilla CSS in `public/styles.css` (no CSS-in-JS)
 - **State**: React hooks (`useState`, `useMemo`, `useEffect`, `useRef`)
 
-> **Note on future migration**: If needed, React can later be migrated to a Vite-based build (using JSX, separate component files in `src/`, etc.). Current approach (htm + CDN) is intentionally simple — no build step needed, works directly in browser.
+### Mobile: React Native (Android)
+
+- **Stack**: React Native 0.85 + React Navigation
+- **Build**: `npx react-native run-android`
+- **File structure**: Component-based in `BRSApp/src/`
+- **Styling**: `StyleSheet.create()` matching web academic palette
+- **State**: React hooks + AsyncStorage for persistence
+- **API**: Direct fetch to Express backend at `10.0.2.2:3000` (Android emulator)
 
 Key invariant: `server.js` must call handlers from `api/*`, not duplicate endpoint logic.
-
-Key invariant: All React code lives in `public/app.js` — no separate `src/` build step.
 
 ---
 
@@ -118,10 +151,9 @@ Each async block must support:
 - success state
 
 ### Data Flow
-- Token/session state in memory + localStorage (`remember` mode).
+- Token/session state in memory + localStorage (web) / AsyncStorage (mobile) (`remember` mode).
 - Semesters and discipline index are loaded first.
-- Discipline details loaded per discipline, cached by key:
-  - `semesterID:disciplineID`
+- Discipline details loaded per discipline.
 
 ### Rendering Requirements
 - Discipline list must be interactive and keyboard-safe.
@@ -149,8 +181,8 @@ Each async block must support:
 ## Visual System Rules
 
 Current visual direction:
-- warm academic glass aesthetic
-- neutral background + a single teal accent
+- warm academic paper aesthetic (brownish paper tones, serif display font)
+- dark ink + single accent (oxblood `#8A2417`)
 - compact, service-like density (no oversized decorative blocks)
 
 Do:
@@ -167,13 +199,19 @@ Do not:
 
 ## Runtime and Scripts
 
-`package.json` scripts:
-- `npm start` -> `node server.js`
+### Web
+- `npm start` -> `node server.js` (Express, port 3000)
 - `npm run dev` -> `node server.js`
 
+### Mobile (BRSApp/)
+- `npx expo start` -> запуск Metro + QR код для Expo Go
+- `npx eas-cli@latest build --platform android --profile preview` -> сборка APK в облаке
+
 Notes:
-- In local development, port conflicts (`EADDRINUSE`) are environment issues; kill previous process or set `PORT`.
-- Vercel deploy should keep `api/*` serverless handlers as source of API behavior.
+- В локальной разработке порты могут конфликтовать (`EADDRINUSE`); убить процесс или поставить `PORT`.
+- Vercel deploy использует `api/*` serverless handlers как источник API-поведения.
+- Mobile приложение стучится напрямую к `grade.sfedu.ru`, **Express не нужен**.
+- Для сборки APK требуется Expo аккаунт (бесплатно, 30 сборок/мес).
 
 ---
 
@@ -209,65 +247,102 @@ Use small, verifiable increments. Prefer correctness and stability over flashy r
 
 ---
 
-## React Native Migration Plan
+## React Native Migration
 
-### Overview
+### Status: ✅ MIGRATED (Expo)
 
-Цель - создать мобильное приложение из существующего web-приложения БРС ЮФУ.
+React Native (Expo SDK 56) project in `BRSApp/`. Стучится напрямую к `grade.sfedu.ru` — **backend не нужен**.
 
-### Что можно переиспользовать
+### Architecture
 
-- **Бизнес-логика**: API вызовы, валидация токена, кеширование данных
-- **Состояние**: React hooks (`useState`, `useMemo`, `useEffect`, `useRef`)
-- **Архитектура данных**: структуры Semester, Discipline, Journal, Module
+```
+BRSApp/
+  App.js                       # Root: SafeAreaProvider + Navigator
+  index.js                     # AppRegistry entry
+  app.json                     # Expo config (name, icons, android package)
+  eas.json                     # EAS Build profiles (preview → APK)
+  src/
+    api/client.js              # fetchJson → grade.sfedu.ru (direct, no proxy)
+    utils/storage.js           # getStoredAuth, setStoredAuth, clearStoredAuth (AsyncStorage)
+    utils/helpers.js           # isLikelyToken, formatDisciplineType, formatTeacherShortName,
+                               # formatSemesterLabel, getGradePresentation, getIndexTeachersForDiscipline
+    theme/index.js             # colors (12 ink/paper/accent/grade tones), fonts, spacing
+    components/
+      StateLoading.js          # animated skeleton shimmer
+      StateEmpty.js            # centered dash + title + desc
+      StateError.js            # red left border, title, desc, retry button
+      GradeBadge.js            # colored border + text by tone (excellent/good/mid/bad/muted)
+      DisciplineCard.js        # title, grade badge, type, points, teachers preview
+      TeacherRow.js            # avatar initials + full name + position
+      ModuleCard.js            # module title + submodule list with rates
+      JournalTable.js          # horizontal scroll table: date, type, topic, mark, attendance
+      SemesterPicker.js        # semester chips in a flex-wrap row
+    screens/
+      LoginScreen.js           # token input, remember switch, auto-login
+      DashboardScreen.js       # semester picker + discipline FlatList
+      DetailScreen.js          # 4-tab detail view (grade/journal/modules/teachers)
+    navigation/
+      AppNavigator.js          # NativeStack: Login → Main → Detail
+```
 
-### Что переписывать
+### Key Technical Decisions
 
-| Компонент | Web (текущее) | Mobile (новое) |
-|-----------|---------------|----------------|
-| UI фреймворк | React + htm | React Native |
-| Навигация | browser routing | React Navigation |
-| Стилизация | CSS / styles.css | StyleSheet |
-| Компоненты | `<div>`, `<span>`, `<button>` | `<View>`, `<Text>`, `<TouchableOpacity>` |
+| Area | Decision |
+|------|----------|
+| Framework | Expo SDK 56 + React Native |
+| Navigation | @react-navigation/native-stack (3 screens) |
+| Persistence | @react-native-async-storage/async-storage |
+| API target | `https://grade.sfedu.ru/api/v1/student` (direct, no backend) |
+| Design tokens | Ported from CSS variables → JS object |
+| State per screen | Each screen owns its data (no global store) |
+| Build | EAS Build (cloud), no Android Studio required |
+
+### Что переписано из web-версии
+
+| Компонент | Web | Mobile |
+|-----------|-----|--------|
+| UI фреймворк | React 18 + htm | Expo SDK 56 |
+| Навигация | Browser routing (views) | React Navigation Stack |
+| Стилизация | CSS (styles.css, 3237 строк) | StyleSheet.create() |
+| Компоненты | div/span/button/table | View/Text/TouchableOpacity/FlatList/ScrollView |
 | Хранение | localStorage | AsyncStorage |
-| HTTP | fetch | fetch / axios |
+| Тема | CSS custom properties | JS объект (theme/index.js) |
+| Семестры | select element | touchable chips |
+| Дисциплины | div list with counter | FlatList + DisciplineCard |
+| Журнал | HTML table | ScrollView horizontal |
+| Модули | article cards | View-based ModuleCard |
+| Преподаватели | div rows with avatar | View-based TeacherRow |
+| Backend | Express (proxy) | Не нужен |
 
-### Этапы миграции
+### Available Scripts
 
-#### Этап 1: Подготовка (1-2 дня)
-- [ ] Настроить проект: `npx react-native init BRSApp`
-- [ ] Создать папку `src/api` - скопировать логику API из `public/app.js`
-- [ ] Настроить React Navigation (Stack + Bottom Tabs)
+```bash
+cd BRSApp
 
-#### Этап 2: Экраны авторизации (1 день)
-- [ ] Экран входа (LoginScreen)
-- [ ] Логика валидации токена
-- [ ] Сохранение токена в AsyncStorage
+# Запуск на телефоне (USB)
+npx expo start
+# Отсканировать QR код через Expo Go
 
-#### Этап 3: Основные экраны (2-3 дня)
-- [ ] Экран списка семестров (SemesterListScreen)
-- [ ] Экран списка дисциплин (DisciplineListScreen)
-- [ ] Экран деталей дисциплины с табами (GradeDetailScreen)
+# Сборка APK в облаке (без Android Studio)
+npx eas-cli@latest build --platform android --profile preview
+```
 
-#### Этап 4: UI компоненты (1-2 дня)
-- [ ] Создать переиспользуемые компоненты: Card, Button, Input, Badge
-- [ ] Адаптировать цветовую систему из styles.css
+### Как собрать APK для одногруппников
 
-#### Этап 5: Сборка (1 день)
-- [ ] Настроить Android/iOS сборку
-- [ ] Протестировать на устройстве
+1. Регистрация: https://expo.dev/signup (бесплатно, 30 сборок/мес)
+2. Войти в EAS: `npx eas-cli@latest login`
+3. Настроить проект: `npx eas-cli@latest build:configure`
+4. Собрать APK: `npx eas-cli@latest build --platform android --profile preview`
+5. Ссылка на APK появится в консоли → кидаешь в Telegram
 
-### Альтернатива: Capacitor / PWA
+### Prerequisites
 
-Если полноценное нативное приложение не требуется:
-- Использовать **Capacitor** для обёртки web-приложения
-- Минусы: webview, не нативный UI
-- Плюсы: минимум изменений кода
+1. Node.js ≥ 18
+2. Expo аккаунт (бесплатный)
+3. Телефон Android с USB-отладкой (для теста)
+   ИЛИ просто собрать APK и скинуть (для одногруппников)
 
-### Рекомендация
+### API Configuration
 
-Для БРС ЮФУ оптимален **React Native** (полная миграция) учитывая:
-- Ежедневное использование студентами
-- Нужны push-уведомления о новых баллах
-- Работа офлайн (кеш оценок)
-- Нативный UI важнее для мобильного опыта
+App стучится напрямую к `https://grade.sfedu.ru/api/v1/student/`.
+Никакого backend запускать не нужно. Работает из коробки.
