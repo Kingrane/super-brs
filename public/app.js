@@ -408,10 +408,9 @@ function App() {
 
     useEffect(() => {
         const storedAuth = getStoredAuth()
-        if (storedAuth.remember && storedAuth.token) {
+        if (storedAuth.token) {
             setTokenInput(storedAuth.token)
-            setRemember(true)
-            runLogin(storedAuth.token, true, true)
+            setRemember(storedAuth.remember)
         }
     }, [])
 
@@ -547,11 +546,11 @@ function App() {
                     </thead>
                     <tbody>
                         ${journal.map((entry, idx) => {
-                            const date = entry.LessonDate ? new Date(entry.LessonDate).toLocaleDateString("ru-RU") : "-"
-                            const mark = entry.Mark ?? "-"
-                            const attendedText = entry.Attended ? "Да" : "Нет"
-                            const attendedClass = entry.Attended ? "attended" : "missed"
-                            return html`
+            const date = entry.LessonDate ? new Date(entry.LessonDate).toLocaleDateString("ru-RU") : "-"
+            const mark = entry.Mark ?? "-"
+            const attendedText = entry.Attended ? "Да" : "Нет"
+            const attendedClass = entry.Attended ? "attended" : "missed"
+            return html`
                                 <tr key=${`${idx}-${entry.ID || date}`}>
                                     <td>${date}</td>
                                     <td>${entry.LessonType || "-"}</td>
@@ -560,7 +559,7 @@ function App() {
                                     <td className=${attendedClass}>${attendedText}</td>
                                 </tr>
                             `
-                        })}
+        })}
                     </tbody>
                 </table>
             </div>
@@ -592,14 +591,14 @@ function App() {
                         </header>
                         <ul>
                             ${(module.Submodules || []).map((submoduleID) => {
-                                const info = submodules[submoduleID] || {}
-                                return html`
+            const info = submodules[submoduleID] || {}
+            return html`
                                     <li key=${String(submoduleID)}>
                                         <span>${info.Title || `Подмодуль ${submoduleID}`}</span>
                                         <span className="mono">${info.Rate ?? "-"} / ${info.MaxRate ?? "-"}</span>
                                     </li>
                                 `
-                            })}
+        })}
                             ${(module.Submodules || []).length === 0 && html`<li><span>Нет подмодулей</span><span className="mono">-</span></li>`}
                         </ul>
                     </article>
@@ -624,12 +623,12 @@ function App() {
         return html`
             <div className="teacher-list">
                 ${mergedTeachers.map((teacher, idx) => {
-                    const fullName = teacher.Name
-                        || `${teacher.LastName || ""} ${teacher.FirstName || ""} ${teacher.SecondName || ""}`.trim()
-                        || "Без имени"
-                    const role = teacher.JobPositionName || "Преподаватель"
-                    const initials = `${(teacher.LastName || "").slice(0, 1)}${(teacher.FirstName || "").slice(0, 1)}`.toUpperCase() || "PR"
-                    return html`
+            const fullName = teacher.Name
+                || `${teacher.LastName || ""} ${teacher.FirstName || ""} ${teacher.SecondName || ""}`.trim()
+                || "Без имени"
+            const role = teacher.JobPositionName || "Преподаватель"
+            const initials = `${(teacher.LastName || "").slice(0, 1)}${(teacher.FirstName || "").slice(0, 1)}`.toUpperCase() || "PR"
+            return html`
                         <article key=${String(teacher.ID || teacher.TeacherID || idx)} className="teacher-row">
                             <span className="avatar">${initials}</span>
                             <div>
@@ -638,7 +637,7 @@ function App() {
                             </div>
                         </article>
                     `
-                })}
+        })}
             </div>
         `
     }
@@ -659,7 +658,7 @@ function App() {
                     <aside className="auth-aside">
                         <p className="kicker">Топ дс брс</p>
                         <h1 id="loginTitle">Сервис БРС ЮФУ</h1>
-                        <p className="lead">Сильный человек это не тот кто поднимает тяжести или управляет компанией, а тот кто получил 60 баллов по непре</p>
+                        <p className="lead">Когда мне предложили купить проигрывать, я отказался, ведь мне нужен только выигрыватель.</p>
                         <a className="link-inline" target="_blank" rel="noopener noreferrer" href="https://grade.sfedu.ru/sign?goal=/student/authtokenget">
                             Получить токен доступа
                         </a>
@@ -720,8 +719,8 @@ function App() {
                         <span>Семестр</span>
                         <select className="input select" value=${currentSemesterID} onChange=${handleSemesterChange}>
                             ${semesters.length === 0
-                                ? html`<option value="">${request.semesters === "loading" ? "Загрузка..." : "Семестры не найдены"}</option>`
-                                : semesters.map((semester) => html`
+            ? html`<option value="">${request.semesters === "loading" ? "Загрузка..." : "Семестры не найдены"}</option>`
+            : semesters.map((semester) => html`
                                     <option key=${String(semester.ID)} value=${String(semester.ID)}>
                                         ${formatSemesterLabel(semester)}
                                     </option>

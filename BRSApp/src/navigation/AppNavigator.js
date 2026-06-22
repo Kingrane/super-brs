@@ -10,16 +10,16 @@ const Stack = createNativeStackNavigator()
 export default function AppNavigator() {
   return (
     <NavigationContainer>
-      <Stack.Navigator
+        <Stack.Navigator
         initialRouteName="Login"
         screenOptions={{
           headerShown: false,
-          animation: 'fade',
+          animation: 'none',
           contentStyle: { backgroundColor: '#F0EBDC' },
         }}>
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Main" component={DashboardScreen} />
-        <Stack.Screen
+          <Stack.Screen
           name="Detail"
           component={DetailScreen}
           options={{
@@ -29,7 +29,7 @@ export default function AppNavigator() {
             headerTintColor: '#0E141C',
             headerTitleStyle: { fontWeight: '600', fontSize: 16 },
             headerShadowVisible: false,
-            animation: 'slide_from_right',
+            animation: 'none',
           }}
         />
       </Stack.Navigator>

@@ -6,15 +6,16 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
   ScrollView,
   Switch,
   StatusBar,
+  KeyboardAvoidingView,
+  Platform,
+  Linking,
 } from 'react-native'
 import { colors, fonts } from '../theme'
 import { isLikelyToken } from '../utils/helpers'
-import { getStoredAuth, setStoredAuth } from '../utils/storage'
+import { setStoredAuth, getLastToken } from '../utils/storage'
 import { fetchSemesters, fetchIndex } from '../api/client'
 
 export default function LoginScreen({ navigation }) {
@@ -25,24 +26,9 @@ export default function LoginScreen({ navigation }) {
 
   useEffect(() => {
     ;(async () => {
-      const stored = await getStoredAuth()
-      if (stored.remember && stored.token) {
-        setTokenInput(stored.token)
-        setRemember(true)
-        setLoading(true)
-        try {
-          const json = await fetchSemesters(stored.token)
-          const response = json?.response || {}
-          const list = Array.isArray(response) ? response : Object.values(response)
-          list.sort((a, b) => Number(b.ID || 0) - Number(a.ID || 0))
-          const semesterID = list[0] ? String(list[0].ID) : ''
-          await fetchIndex(stored.token, semesterID)
-          navigation.replace('Main', { token: stored.token, semesterID })
-        } catch {
-          setStatus({ message: 'Не удалось автоматически войти. Проверьте токен.', type: 'error' })
-        } finally {
-          setLoading(false)
-        }
+      const last = await getLastToken()
+      if (last) {
+        setTokenInput(last)
       }
     })()
   }, [])
@@ -95,8 +81,8 @@ export default function LoginScreen({ navigation }) {
           <Text style={styles.kicker}>БРС ЮФУ</Text>
           <Text style={styles.title}>Сервис БРС ЮФУ</Text>
           <Text style={styles.lead}>
-            Сильный человек это не тот кто поднимает тяжести или управляет
-            компанией, а тот кто получил 60 баллов по непре
+            Когда мне предложили купить проигрывать, я отказался,
+            ведь мне нужен только выигрыватель.
           </Text>
 
           <View style={styles.form}>
@@ -146,6 +132,12 @@ export default function LoginScreen({ navigation }) {
                 {status.message}
               </Text>
             ) : null}
+
+            <TouchableOpacity
+              style={styles.helpBtn}
+              onPress={() => Linking.openURL('https://grade.sfedu.ru/sign?goal=/student/authtokenget')}>
+              <Text style={styles.helpBtnText}>Как получить токен?</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
@@ -251,5 +243,15 @@ const styles = StyleSheet.create({
   },
   statusError: {
     color: colors.accent,
+  },
+  helpBtn: {
+    marginTop: 12,
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  helpBtnText: {
+    fontSize: 13,
+    color: colors.accent,
+    textDecorationLine: 'underline',
   },
 })

@@ -18,7 +18,7 @@ export default function App() {
           initialRouteName="Login"
           screenOptions={{
             headerShown: false,
-            animation: 'fade',
+            gestureEnabled: false,
             contentStyle: { backgroundColor: '#F0EBDC' },
           }}>
           <Stack.Screen name="Login" component={LoginScreen} />
@@ -33,7 +33,6 @@ export default function App() {
               headerTintColor: '#0E141C',
               headerTitleStyle: { fontWeight: '600', fontSize: 16 },
               headerShadowVisible: false,
-              animation: 'slide_from_right',
             }}
           />
         </Stack.Navigator>

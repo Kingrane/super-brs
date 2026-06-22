@@ -24,6 +24,7 @@
       ]
     },
     "plugins": [],
+    "updates": { "enabled": false, "fallbackToCacheTimeout": 0 },
     "extra": {
       "eas": {
         "projectId": "9e82025b-b3af-4c10-b01a-a835fa486d9d"

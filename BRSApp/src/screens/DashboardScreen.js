@@ -10,6 +10,7 @@ import {
 } from 'react-native'
 import { colors, fonts } from '../theme'
 import { fetchSemesters, fetchIndex } from '../api/client'
+import { clearStoredAuth, getStoredAuth } from '../utils/storage'
 import { formatSemesterLabel } from '../utils/helpers'
 import DisciplineCard from '../components/DisciplineCard'
 import StateLoading from '../components/StateLoading'
@@ -67,7 +68,8 @@ export default function DashboardScreen({ route, navigation }) {
     loadAll(currentSemesterID)
   }
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await clearStoredAuth()
     navigation.reset({ index: 0, routes: [{ name: 'Login' }] })
   }
 

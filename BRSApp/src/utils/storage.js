@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 const KEYS = {
   token: '@grade_token',
   remember: '@grade_remember',
+  lastToken: '@grade_last_token',
 }
 
 export async function getStoredAuth() {
@@ -22,6 +23,7 @@ export async function setStoredAuth(token, remember) {
       await AsyncStorage.setItem(KEYS.token, token)
     } else {
       await AsyncStorage.removeItem(KEYS.token)
+      await AsyncStorage.setItem(KEYS.lastToken, token)
     }
   } catch {}
 }
@@ -31,4 +33,12 @@ export async function clearStoredAuth() {
     await AsyncStorage.removeItem(KEYS.token)
     await AsyncStorage.removeItem(KEYS.remember)
   } catch {}
+}
+
+export async function getLastToken() {
+  try {
+    return (await AsyncStorage.getItem(KEYS.lastToken)) || ''
+  } catch {
+    return ''
+  }
 }
