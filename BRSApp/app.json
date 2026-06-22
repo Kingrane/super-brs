@@ -1,0 +1,35 @@
+{
+  "expo": {
+    "name": "БРС ЮФУ",
+    "slug": "brs-sfedu",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.jpg",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#F0EBDC",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.brs.sfedu"
+    },
+    "android": {
+      "package": "com.brs.sfedu",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "backgroundColor": "#F0EBDC",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "foregroundImage": "./assets/android-icon-foreground.png"
+      },
+      "permissions": [
+        "INTERNET"
+      ]
+    },
+    "plugins": [],
+    "updates": { "enabled": false, "fallbackToCacheTimeout": 0 },
+    "extra": {
+      "eas": {
+        "projectId": "9e82025b-b3af-4c10-b01a-a835fa486d9d"
+      }
+    },
+    "owner": "romavibecoder"
+  }
+}

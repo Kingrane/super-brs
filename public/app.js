@@ -9,14 +9,12 @@ const ENDPOINTS = {
     index: "/api/student/index",
     journal: "/api/student/discipline/journal",
     subject: "/api/student/discipline/subject",
-    profile: "/api/student/profile"
 }
 
 const INITIAL_REQUEST = {
     semesters: "idle",
     index: "idle",
     detail: "idle",
-    profile: "idle"
 }
 
 function getStoredAuth() {
@@ -204,7 +202,6 @@ function App() {
     const [marks, setMarks] = useState({})
     const [teachersMap, setTeachersMap] = useState({})
     const [selectedDisciplineID, setSelectedDisciplineID] = useState("")
-    const [profile, setProfile] = useState(null)
     const [debugLog, setDebugLog] = useState({})
     const [request, setRequest] = useState(INITIAL_REQUEST)
     const [lastMainLoadError, setLastMainLoadError] = useState("")
@@ -290,16 +287,6 @@ function App() {
         }
     }
 
-    const loadProfile = async (authToken) => {
-        setRequest((prev) => ({ ...prev, profile: "loading" }))
-        try {
-            const result = await fetchJson(ENDPOINTS.profile, { token: authToken })
-            setProfile(result)
-            setRequest((prev) => ({ ...prev, profile: "success" }))
-        } catch {
-            setRequest((prev) => ({ ...prev, profile: "error" }))
-        }
-    }
 
     const selectDiscipline = async (disciplineID, options = {}) => {
         const nextID = String(disciplineID)
@@ -332,7 +319,7 @@ function App() {
     const loadDashboardData = async (authToken) => {
         setLastMainLoadError("")
         const semesterID = await loadSemesters(authToken)
-        await Promise.all([loadIndex(authToken, semesterID), loadProfile(authToken)])
+        await Promise.all([loadIndex(authToken, semesterID)])
     }
 
     const runLogin = async (authToken, rememberFlag, isAuto = false) => {
@@ -378,7 +365,7 @@ function App() {
         setMarks({})
         setTeachersMap({})
         setSelectedDisciplineID("")
-        setProfile(null)
+
         setDebugLog({})
         detailCacheRef.current.clear()
         setRequest(INITIAL_REQUEST)
@@ -390,7 +377,7 @@ function App() {
 
     const handleRefresh = async () => {
         try {
-            await Promise.all([loadIndex(token, currentSemesterID), loadProfile(token)])
+            await Promise.all([loadIndex(token, currentSemesterID)])
             if (selectedDisciplineID) {
                 await selectDiscipline(selectedDisciplineID, { forceReload: true })
             }
@@ -421,10 +408,9 @@ function App() {
 
     useEffect(() => {
         const storedAuth = getStoredAuth()
-        if (storedAuth.remember && storedAuth.token) {
+        if (storedAuth.token) {
             setTokenInput(storedAuth.token)
-            setRemember(true)
-            runLogin(storedAuth.token, true, true)
+            setRemember(storedAuth.remember)
         }
     }, [])
 
@@ -560,11 +546,11 @@ function App() {
                     </thead>
                     <tbody>
                         ${journal.map((entry, idx) => {
-                            const date = entry.LessonDate ? new Date(entry.LessonDate).toLocaleDateString("ru-RU") : "-"
-                            const mark = entry.Mark ?? "-"
-                            const attendedText = entry.Attended ? "Да" : "Нет"
-                            const attendedClass = entry.Attended ? "attended" : "missed"
-                            return html`
+            const date = entry.LessonDate ? new Date(entry.LessonDate).toLocaleDateString("ru-RU") : "-"
+            const mark = entry.Mark ?? "-"
+            const attendedText = entry.Attended ? "Да" : "Нет"
+            const attendedClass = entry.Attended ? "attended" : "missed"
+            return html`
                                 <tr key=${`${idx}-${entry.ID || date}`}>
                                     <td>${date}</td>
                                     <td>${entry.LessonType || "-"}</td>
@@ -573,7 +559,7 @@ function App() {
                                     <td className=${attendedClass}>${attendedText}</td>
                                 </tr>
                             `
-                        })}
+        })}
                     </tbody>
                 </table>
             </div>
@@ -605,14 +591,14 @@ function App() {
                         </header>
                         <ul>
                             ${(module.Submodules || []).map((submoduleID) => {
-                                const info = submodules[submoduleID] || {}
-                                return html`
+            const info = submodules[submoduleID] || {}
+            return html`
                                     <li key=${String(submoduleID)}>
                                         <span>${info.Title || `Подмодуль ${submoduleID}`}</span>
                                         <span className="mono">${info.Rate ?? "-"} / ${info.MaxRate ?? "-"}</span>
                                     </li>
                                 `
-                            })}
+        })}
                             ${(module.Submodules || []).length === 0 && html`<li><span>Нет подмодулей</span><span className="mono">-</span></li>`}
                         </ul>
                     </article>
@@ -637,12 +623,12 @@ function App() {
         return html`
             <div className="teacher-list">
                 ${mergedTeachers.map((teacher, idx) => {
-                    const fullName = teacher.Name
-                        || `${teacher.LastName || ""} ${teacher.FirstName || ""} ${teacher.SecondName || ""}`.trim()
-                        || "Без имени"
-                    const role = teacher.JobPositionName || "Преподаватель"
-                    const initials = `${(teacher.LastName || "").slice(0, 1)}${(teacher.FirstName || "").slice(0, 1)}`.toUpperCase() || "PR"
-                    return html`
+            const fullName = teacher.Name
+                || `${teacher.LastName || ""} ${teacher.FirstName || ""} ${teacher.SecondName || ""}`.trim()
+                || "Без имени"
+            const role = teacher.JobPositionName || "Преподаватель"
+            const initials = `${(teacher.LastName || "").slice(0, 1)}${(teacher.FirstName || "").slice(0, 1)}`.toUpperCase() || "PR"
+            return html`
                         <article key=${String(teacher.ID || teacher.TeacherID || idx)} className="teacher-row">
                             <span className="avatar">${initials}</span>
                             <div>
@@ -651,44 +637,13 @@ function App() {
                             </div>
                         </article>
                     `
-                })}
+        })}
             </div>
         `
     }
 
     const renderProfile = () => {
-        if (request.profile === "loading") {
-            return html`<${StateLoading} />`
-        }
-
-        if (request.profile === "error") {
-            return html`
-                <${StateError}
-                    title="Профиль недоступен"
-                    details="Эндпоинт профиля недоступен или вернул ошибку."
-                    onRetry=${() => loadProfile(token)}
-                />
-            `
-        }
-
-        const profileData = profile?.response || profile || null
-        if (!profileData) {
-            return html`<${StateEmpty} title="Нет данных" description="Профиль студента не вернулся в API ответе." />`
-        }
-
-        const pairs = [
-            ["ФИО", profileData.FullName || profileData.full_name || profileData.Name || "-"],
-            ["Группа", profileData.GroupNum || profileData.group || "-"],
-            ["Курс", profileData.Course || profileData.course || "-"],
-            ["Специальность", profileData.Speciality || profileData.study_direction || "-"],
-            ["Зачетка", profileData.RecordBookID || profileData.record_book_id || "-"]
-        ]
-
-        return html`
-            <dl className="kv-grid kv-compact">
-                ${pairs.map(([key, value]) => html`<div key=${key}><dt>${key}</dt><dd>${value}</dd></div>`)}
-            </dl>
-        `
+        return html`<${StateEmpty} title="Профиль недоступен" description="Функционал профиля был отключён." />`
     }
 
     const selectedMark = selectedDiscipline
@@ -703,7 +658,7 @@ function App() {
                     <aside className="auth-aside">
                         <p className="kicker">Топ дс брс</p>
                         <h1 id="loginTitle">Сервис БРС ЮФУ</h1>
-                        <p className="lead">Сильный человек это не тот кто поднимает тяжести или управляет компанией, а тот кто получил 60 баллов по непре</p>
+                        <p className="lead">Когда мне предложили купить проигрывать, я отказался, ведь мне нужен только выигрыватель.</p>
                         <a className="link-inline" target="_blank" rel="noopener noreferrer" href="https://grade.sfedu.ru/sign?goal=/student/authtokenget">
                             Получить токен доступа
                         </a>
@@ -764,8 +719,8 @@ function App() {
                         <span>Семестр</span>
                         <select className="input select" value=${currentSemesterID} onChange=${handleSemesterChange}>
                             ${semesters.length === 0
-                                ? html`<option value="">${request.semesters === "loading" ? "Загрузка..." : "Семестры не найдены"}</option>`
-                                : semesters.map((semester) => html`
+            ? html`<option value="">${request.semesters === "loading" ? "Загрузка..." : "Семестры не найдены"}</option>`
+            : semesters.map((semester) => html`
                                     <option key=${String(semester.ID)} value=${String(semester.ID)}>
                                         ${formatSemesterLabel(semester)}
                                     </option>
@@ -816,12 +771,7 @@ function App() {
                             </div>
                         </article>
 
-                        <article className="card panel-profile">
-                            <div className="panel-head">
-                                <h3>Профиль студента</h3>
-                            </div>
-                            <div className="panel-body">${renderProfile()}</div>
-                        </article>
+
                     </section>
                 </main>
 

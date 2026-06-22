@@ -1,0 +1,45 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - link "Сервис БРС" [ref=e5] [cursor=pointer]:
+      - /url: /
+    - generic [ref=e6]: Аутентификация
+  - generic [ref=e7]:
+    - generic [ref=e9]:
+      - generic [ref=e10]:
+        - heading "Аутентификация" [level=2] [ref=e11]
+        - generic [ref=e12]:
+          - textbox "Логин@sfedu.ru" [ref=e14]
+          - button "Войти через сервис Microsoft" [ref=e15] [cursor=pointer]
+          - generic [ref=e16]:
+            - link "Вход через локальную учетную запись" [ref=e17] [cursor=pointer]:
+              - /url: "#"
+            - text: "|"
+            - link "Активировать аккаунт" [ref=e18] [cursor=pointer]:
+              - /url: /sign/up
+            - text: "|"
+            - button "выбор роли" [ref=e19] [cursor=pointer]
+      - generic [ref=e20]:
+        - generic [ref=e21]:
+          - generic [ref=e22]: Новости
+          - generic [ref=e23]: Обновления
+          - generic [ref=e24]: Синхронизации
+        - generic [ref=e27]:
+          - heading "29.08.25" [level=3] [ref=e28]
+          - paragraph [ref=e29]: Уважаемые студенты 1-го курса!
+          - paragraph [ref=e30]: Работа с Сервисом БРС для недавно зачисленных студентов станет возможна после 15 сентября.
+          - heading "06.02.24" [level=3] [ref=e31]
+          - paragraph [ref=e32]: Уважаемые студенты и преподаватели!
+          - paragraph [ref=e33]: В СБРС быди добавлены данные весеннего семестра 2023-24 уч. года. Можно заполнить УКД и начать выставлять баллы. При обнаружении проблем в полноте данных из СБРС прежде всего обращайтесь в деканаты подразделений!
+    - generic [ref=e34]:
+      - generic [ref=e35]:
+        - generic [ref=e36]:
+          - link "Руководство пользователя Сервиса БРС (.pdf)" [ref=e37] [cursor=pointer]:
+            - /url: /instructions.pdf
+          - text: "|"
+        - link "Положение о порядке применения БРС (.pdf)" [ref=e38] [cursor=pointer]:
+          - /url: /order248.pdf
+        - text: "|"
+        - link "ЧаВо (часто задаваемые вопросы)" [ref=e39] [cursor=pointer]:
+          - /url: /faq
+      - link "IT-лаборатория мехмата ЮФУ © 2014 — 2026" [ref=e41] [cursor=pointer]:
+        - /url: https://vk.com/itlab_mmcs
