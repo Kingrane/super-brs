@@ -7,7 +7,9 @@ import {
   StyleSheet,
   ActivityIndicator,
   StatusBar,
+  useWindowDimensions,
 } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { colors, fonts } from '../theme'
 import { fetchSemesters, fetchIndex } from '../api/client'
 import { clearStoredAuth, getStoredAuth } from '../utils/storage'
@@ -17,6 +19,8 @@ import StateLoading from '../components/StateLoading'
 import StateError from '../components/StateError'
 
 export default function DashboardScreen({ route, navigation }) {
+  const insets = useSafeAreaInsets()
+  const { width } = useWindowDimensions()
   const { token } = route.params
   const [semesters, setSemesters] = useState([])
   const [currentSemesterID, setCurrentSemesterID] = useState(route.params?.semesterID || '')
@@ -75,8 +79,8 @@ export default function DashboardScreen({ route, navigation }) {
 
   const renderHeader = () => (
     <View>
-      <View style={styles.topbar}>
-        <View>
+      <View style={[styles.topbar, { paddingTop: insets.top + 12 }]}>
+        <View style={styles.topbarLeft}>
           <Text style={styles.kicker}>БРС ЮФУ</Text>
           <Text style={styles.topTitle}>Мои дисциплины</Text>
         </View>
@@ -84,8 +88,8 @@ export default function DashboardScreen({ route, navigation }) {
           <TouchableOpacity style={styles.btn} onPress={handleRefresh}>
             <Text style={styles.btnText}>Обновить</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.btn} onPress={handleLogout}>
-            <Text style={[styles.btnText, { color: colors.accent }]}>Выйти</Text>
+          <TouchableOpacity style={[styles.btn, styles.btnLogout]} onPress={handleLogout}>
+            <Text style={styles.btnTextLogout}>Выйти</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -174,10 +178,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
-    paddingVertical: 16,
+    paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: colors.rule,
     marginBottom: 12,
+  },
+  topbarLeft: {
+    flexShrink: 1,
+    marginRight: 12,
   },
   kicker: {
     fontSize: 11,
@@ -196,13 +204,17 @@ const styles = StyleSheet.create({
   },
   topActions: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 6,
+    flexShrink: 0,
   },
   btn: {
     borderWidth: 1,
     borderColor: colors.rule2,
     paddingVertical: 8,
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
+  },
+  btnLogout: {
+    borderColor: colors.accentLine,
   },
   btnText: {
     fontSize: 12,
@@ -210,6 +222,13 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     color: colors.ink,
+  },
+  btnTextLogout: {
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    color: colors.accent,
   },
   semesterBar: {
     marginBottom: 16,

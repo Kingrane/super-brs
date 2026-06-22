@@ -238,22 +238,27 @@ export default function DetailScreen({ route, navigation }) {
           <GradeBadge text={grade.text} tone={grade.tone} />
         </View>
 
-        <View style={styles.tabs}>
-          {TABS.map((tab) => (
-            <TouchableOpacity
-              key={tab.key}
-              style={[styles.tab, activeTab === tab.key && styles.tabActive]}
-              onPress={() => setActiveTab(tab.key)}>
-              <Text
-                style={[
-                  styles.tabText,
-                  activeTab === tab.key && styles.tabTextActive,
-                ]}>
-                {tab.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.tabsScroll}>
+          <View style={styles.tabs}>
+            {TABS.map((tab) => (
+              <TouchableOpacity
+                key={tab.key}
+                style={[styles.tab, activeTab === tab.key && styles.tabActive]}
+                onPress={() => setActiveTab(tab.key)}>
+                <Text
+                  style={[
+                    styles.tabText,
+                    activeTab === tab.key && styles.tabTextActive,
+                  ]}>
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
 
         <View style={styles.tabContent}>{renderTab(activeTab)}</View>
       </ScrollView>
@@ -288,11 +293,13 @@ const styles = StyleSheet.create({
     color: colors.ink,
     lineHeight: 24,
   },
+  tabsScroll: {
+    marginTop: 8,
+  },
   tabs: {
     flexDirection: 'row',
     borderBottomWidth: 1,
     borderBottomColor: colors.rule,
-    marginTop: 8,
   },
   tab: {
     paddingVertical: 10,
