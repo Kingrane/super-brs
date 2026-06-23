@@ -15,7 +15,7 @@ import {
 } from 'react-native'
 import { colors, fonts } from '../theme'
 import { isLikelyToken } from '../utils/helpers'
-import { setStoredAuth, getLastToken } from '../utils/storage'
+import { setStoredAuth, getStoredAuth, getLastToken, clearStoredAuth } from '../utils/storage'
 import { fetchSemesters, fetchIndex } from '../api/client'
 
 export default function LoginScreen({ navigation }) {
@@ -26,9 +26,15 @@ export default function LoginScreen({ navigation }) {
 
   useEffect(() => {
     ;(async () => {
-      const last = await getLastToken()
-      if (last) {
-        setTokenInput(last)
+      const stored = await getStoredAuth()
+      if (stored.remember && stored.token) {
+        setTokenInput(stored.token)
+        setRemember(true)
+      } else {
+        const last = await getLastToken()
+        if (last) {
+          setTokenInput(last)
+        }
       }
     })()
   }, [])
