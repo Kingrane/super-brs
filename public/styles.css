@@ -1319,6 +1319,22 @@ textarea.input {
     color: var(--accent);
 }
 
+.footer-credit {
+
+    margin-top: 2rem;
+
+    font-size: 0.6rem;
+
+    font-family: var(--font-mono);
+
+    color: var(--ink-faint);
+
+    text-align: center;
+
+    letter-spacing: 1.5px;
+
+}
+
 
 .banner {
 

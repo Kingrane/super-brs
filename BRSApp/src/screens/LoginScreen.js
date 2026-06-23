@@ -140,6 +140,7 @@ export default function LoginScreen({ navigation }) {
             </TouchableOpacity>
           </View>
         </View>
+        <Text style={styles.footer}>romka навайбкодил</Text>
       </ScrollView>
     </KeyboardAvoidingView>
   )
@@ -253,5 +254,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.accent,
     textDecorationLine: 'underline',
+  },
+  footer: {
+    marginTop: 24,
+    fontSize: 10,
+    color: colors.inkFaint,
+    textAlign: 'center',
+    fontFamily: fonts.mono,
+    letterSpacing: 1.5,
   },
 })

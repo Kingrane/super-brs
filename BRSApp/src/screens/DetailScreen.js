@@ -8,7 +8,7 @@ import {
   StatusBar,
 } from 'react-native'
 import { colors, fonts } from '../theme'
-import { fetchJournal, fetchSubject, fetchIndex } from '../api/client'
+import { fetchJournal, fetchSubject, fetchIndex, fetchEvents } from '../api/client'
 import {
   formatDisciplineType,
   formatTeacherShortName,
@@ -28,6 +28,7 @@ const TABS = [
   { key: 'journal', label: 'Журнал' },
   { key: 'map', label: 'Модули' },
   { key: 'teachers', label: 'Преподаватели' },
+  { key: 'events', label: 'История' },
 ]
 
 export default function DetailScreen({ route, navigation }) {
@@ -38,6 +39,8 @@ export default function DetailScreen({ route, navigation }) {
   const [teachersMap, setTeachersMap] = useState({})
   const [journal, setJournal] = useState(null)
   const [subject, setSubject] = useState(null)
+  const [events, setEvents] = useState(null)
+  const [eventsLoading, setEventsLoading] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState('grade')
@@ -51,6 +54,13 @@ export default function DetailScreen({ route, navigation }) {
         fetchJournal(token, disciplineID),
         fetchSubject(token, disciplineID).catch(() => null),
       ])
+
+      try {
+        const eventsJson = await fetchEvents(token, '', semesterID)
+        setEvents(eventsJson)
+      } catch {
+        setEvents(null)
+      }
 
       const idxResponse = idxJson?.response || {}
       const nextDisciplines = Array.isArray(idxResponse.Disciplines)
@@ -199,6 +209,37 @@ export default function DetailScreen({ route, navigation }) {
             ))}
           </View>
         )
+
+      case 'events': {
+        if (!events) {
+          return (
+            <StateEmpty
+              title="История недоступна"
+              description="Не удалось загрузить историю событий."
+            />
+          )
+        }
+        const eventList = Array.isArray(events.event) ? events.event : []
+        if (eventList.length === 0) {
+          return (
+            <StateEmpty
+              title="Нет событий"
+              description="История событий пуста."
+            />
+          )
+        }
+        return (
+          <View style={styles.eventList}>
+            {eventList.map((ev, idx) => (
+              <View key={idx} style={styles.eventRow}>
+                <Text style={styles.eventDate}>{ev.Date || ev.date || '-'}</Text>
+                <Text style={styles.eventType}>{ev.Type || ev.type || '-'}</Text>
+                <Text style={styles.eventTopic}>{ev.Topic || ev.topic || ev.Name || ev.name || ''}</Text>
+              </View>
+            ))}
+          </View>
+        )
+      }
 
       default:
         return null
@@ -366,5 +407,36 @@ const styles = StyleSheet.create({
   },
   moduleList: {
     gap: 0,
+  },
+  eventList: {
+    gap: 0,
+  },
+  eventRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.ruleSoft,
+    gap: 4,
+  },
+  eventDate: {
+    fontSize: 11,
+    fontFamily: fonts.mono,
+    color: colors.inkMute,
+    width: '100%',
+    marginBottom: 2,
+  },
+  eventType: {
+    fontSize: 11,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    color: colors.inkSoft,
+    marginRight: 8,
+  },
+  eventTopic: {
+    fontSize: 13,
+    color: colors.ink,
+    flex: 1,
   },
 })

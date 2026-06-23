@@ -1,11 +1,15 @@
-const API_BASE = 'https://grade.sfedu.ru/api/v1/student'
+import { parseSimpleXml } from '../utils/helpers'
+
+const API_V1 = 'https://grade.sfedu.ru/api/v1/student'
+const API_V0 = 'https://grade.sfedu.ru/api/v0'
 const TIMEOUT = 15000
 
 const ENDPOINTS = {
-  semesters: `${API_BASE}/semester_list`,
-  index: `${API_BASE}`,
-  journal: `${API_BASE}/discipline/journal`,
-  subject: `${API_BASE}/discipline/subject`,
+  semesters: `${API_V1}/semester_list`,
+  index: `${API_V1}`,
+  journal: `${API_V1}/discipline/journal`,
+  subject: `${API_V1}/discipline/subject`,
+  events: `${API_V0}/events`,
 }
 
 function buildQuery(params) {
@@ -65,4 +69,26 @@ export async function fetchJournal(token, id) {
 
 export async function fetchSubject(token, id) {
   return fetchJson(ENDPOINTS.subject, { token, id })
+}
+
+async function apiGetText(url) {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), TIMEOUT)
+  try {
+    const res = await fetch(url, {
+      signal: controller.signal,
+      headers: { 'user-agent': 'grade-student-mobile/1.0' },
+    })
+    const text = await res.text()
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    return text
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+export async function fetchEvents(token, recordbookID, semesterID) {
+  const query = buildQuery({ token, recordbookID, semesterID })
+  const xml = await apiGetText(`${ENDPOINTS.events}?${query}`)
+  return parseSimpleXml(xml) || { raw: xml }
 }

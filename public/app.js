@@ -700,6 +700,7 @@ function App() {
                         </p>
                     </div>
                 </div>
+                <p className="footer-credit">romka навайбкодил</p>
             </section>
 
             <section className=${`view ${view === "dashboard" ? "view-active" : ""}`.trim()} aria-label="Панель оценок">

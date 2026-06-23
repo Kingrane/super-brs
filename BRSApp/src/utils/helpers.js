@@ -94,6 +94,42 @@ export function getGradePresentation(mark, discipline) {
   )
 }
 
+export function parseSimpleXml(xml) {
+  try {
+    const obj = {}
+    const rootMatch = xml.match(/<(\w+)[^>]*>[\s\S]*<\/\1>/)
+    if (!rootMatch) return null
+    const rootTag = rootMatch[1]
+    const inner = xml.replace(/<\?xml[^>]+\?>/, '').trim()
+    const itemRegex = /<(\w+)>([\s\S]*?)<\/\1>/g
+    let m
+    while ((m = itemRegex.exec(inner)) !== null) {
+      const tag = m[1]
+      let val = m[2].trim()
+      const childMatch = val.match(/^<(\w+)>/)
+      if (childMatch) {
+        const children = []
+        const childRegex = /<(\w+)>([\s\S]*?)<\/\1>/g
+        let cm
+        while ((cm = childRegex.exec(val)) !== null) {
+          children.push({ [cm[1]]: cm[2].trim() })
+        }
+        if (children.length) {
+          if (!obj[tag]) obj[tag] = []
+          obj[tag].push(Object.assign({}, ...children))
+          continue
+        }
+      }
+      if (tag === rootTag && !/^<(\w+)>/.test(val)) continue
+      if (!obj[tag]) obj[tag] = []
+      obj[tag].push(val)
+    }
+    return obj
+  } catch {
+    return null
+  }
+}
+
 export function getIndexTeachersForDiscipline(teachersMap, disciplineID) {
   const value =
     teachersMap[String(disciplineID)] || teachersMap[disciplineID]
