@@ -503,6 +503,10 @@ function App() {
         const markRaw = marks[String(selectedDiscipline.ID)] || marks[selectedDiscipline.ID] || ""
         const grade = getGradePresentation(markRaw, selectedDiscipline)
         const subject = detail.subject?.response?.Discipline || detail.journal?.response?.Discipline || selectedDiscipline
+        const _map = detail.subject?.response?.DisciplineMap
+        const _subs = detail.subject?.response?.Submodules || {}
+        const _examModule = Object.values(_map?.Modules || {}).find(m => /экзамен|зачёт|зачет/i.test(m.Title || ''))
+        const _examSub = _examModule ? _subs[_examModule.Submodules?.[0]] : null
 
         return html`
             <div className="grade-panel">
@@ -512,7 +516,7 @@ function App() {
                     <div><dt>Тип</dt><dd>${formatDisciplineType(subject?.Type)}</dd></div>
                     <div><dt>Семестр</dt><dd>${currentSemesterID || "-"}</dd></div>
                     <div><dt>Баллы</dt><dd className="mono">${subject?.Rate ?? selectedDiscipline?.Rate ?? "-"} / ${subject?.MaxCurrentRate ?? selectedDiscipline?.MaxCurrentRate ?? "-"}</dd></div>
-                    ${(subject?.ExamRate != null || subject?.MaxExamRate != null) ? html`<div><dt>Экзамен</dt><dd className="mono">${subject?.ExamRate ?? "-"} / ${subject?.MaxExamRate ?? "-"}</dd></div>` : ''}
+                    ${_examSub ? html`<div><dt>Экзамен</dt><dd className="mono">${_examSub.Rate ?? "-"} / ${_examSub.MaxRate ?? "-"}</dd></div>` : ''}
                     <div><dt>ID дисциплины</dt><dd className="mono">${subject?.ID || selectedDiscipline?.ID || "-"}</dd></div>
                 </dl>
             </div>
@@ -583,9 +587,13 @@ function App() {
         }
 
         const modules = Object.values(disciplineMap.Modules)
+        const examModule = modules.find(m => /экзамен|зачёт|зачет/i.test(m.Title || ''))
+        const examSub = examModule
+          ? submodules[examModule.Submodules?.[0]]
+          : null
         return html`
             <div className="module-list">
-                ${modules.map((module, idx) => html`
+                ${modules.filter(m => m !== examModule).map((module, idx) => html`
                     <article key=${`${idx}-${module.Title || "module"}`} className="module-card">
                         <header>
                             <h4>${module.Title || "Модуль"}</h4>
@@ -604,6 +612,19 @@ function App() {
                         </ul>
                     </article>
                 `)}
+                ${examSub ? html`
+                    <article className="module-card module-card-exam">
+                        <header>
+                            <h4>Экзамен</h4>
+                        </header>
+                        <ul>
+                            <li>
+                                <span>Экзаменационная оценка</span>
+                                <span className="mono">${examSub.Rate ?? "-"} / ${examSub.MaxRate ?? "-"}</span>
+                            </li>
+                        </ul>
+                    </article>
+                ` : ''}
             </div>
         `
     }
