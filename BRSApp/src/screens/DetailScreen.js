@@ -136,6 +136,15 @@ export default function DetailScreen({ route, navigation }) {
     currentDiscipline ||
     {}
 
+  const examFromMap = disciplineMap?.Exam || disciplineMap?.Final || null
+  const hasExam = (subjectInfo?.ExamRate != null || subjectInfo?.MaxExamRate != null) || (examFromMap?.Rate != null)
+  const examRate = hasExam
+    ? {
+        rate: subjectInfo?.ExamRate ?? examFromMap?.Rate ?? null,
+        max: subjectInfo?.MaxExamRate ?? examFromMap?.MaxRate ?? null,
+      }
+    : null
+
   const renderTab = (key) => {
     switch (key) {
       case 'grade':
@@ -163,6 +172,14 @@ export default function DetailScreen({ route, navigation }) {
                     '-'}
                 </Text>
               </View>
+              {examRate && (
+                <View style={styles.kvRow}>
+                  <Text style={styles.kvKey}>Экзамен</Text>
+                  <Text style={[styles.kvVal, styles.mono]}>
+                    {examRate.rate ?? '-'} / {examRate.max ?? '-'}
+                  </Text>
+                </View>
+              )}
               <View style={styles.kvRow}>
                 <Text style={styles.kvKey}>ID</Text>
                 <Text style={[styles.kvVal, styles.mono]}>
@@ -190,6 +207,14 @@ export default function DetailScreen({ route, navigation }) {
             {modules.map((mod, idx) => (
               <ModuleCard key={idx} module={mod} submodules={submodules} />
             ))}
+            {examRate && (
+              <View style={styles.examCard}>
+                <Text style={styles.examLabel}>Экзамен</Text>
+                <Text style={styles.examPoints}>
+                  {examRate.rate ?? '-'} / {examRate.max ?? '-'}
+                </Text>
+              </View>
+            )}
           </View>
         )
 
@@ -407,6 +432,29 @@ const styles = StyleSheet.create({
   },
   moduleList: {
     gap: 0,
+  },
+  examCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    backgroundColor: colors.surface,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: colors.accentLine,
+  },
+  examLabel: {
+    fontSize: 14,
+    fontFamily: fonts.display,
+    fontStyle: 'italic',
+    fontWeight: '500',
+    color: colors.accent,
+  },
+  examPoints: {
+    fontSize: 13,
+    fontFamily: fonts.mono,
+    color: colors.ink,
   },
   eventList: {
     gap: 0,

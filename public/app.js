@@ -512,6 +512,7 @@ function App() {
                     <div><dt>Тип</dt><dd>${formatDisciplineType(subject?.Type)}</dd></div>
                     <div><dt>Семестр</dt><dd>${currentSemesterID || "-"}</dd></div>
                     <div><dt>Баллы</dt><dd className="mono">${subject?.Rate ?? selectedDiscipline?.Rate ?? "-"} / ${subject?.MaxCurrentRate ?? selectedDiscipline?.MaxCurrentRate ?? "-"}</dd></div>
+                    ${(subject?.ExamRate != null || subject?.MaxExamRate != null) ? html`<div><dt>Экзамен</dt><dd className="mono">${subject?.ExamRate ?? "-"} / ${subject?.MaxExamRate ?? "-"}</dd></div>` : ''}
                     <div><dt>ID дисциплины</dt><dd className="mono">${subject?.ID || selectedDiscipline?.ID || "-"}</dd></div>
                 </dl>
             </div>
