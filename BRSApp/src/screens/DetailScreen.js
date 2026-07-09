@@ -137,21 +137,12 @@ export default function DetailScreen({ route, navigation }) {
     {}
 
   const examFromMap = disciplineMap?.Exam || disciplineMap?.Final || null
-  const examModule = Object.values(disciplineMap?.Modules || {}).find(
-    m => /экзамен|зачёт|зачет/i.test(m.Title || '')
-  )
-  const examSubmodules = examModule
-    ? (examModule.Submodules || []).map(id => submodules[id]).filter(Boolean)
-    : []
-  const examSub = examSubmodules.length > 0
-    ? examSubmodules[0]
-    : null
-  const hasExam = examFromMap?.Rate != null || examSub?.Rate != null
+  const hasExam = (subjectInfo?.ExamRate != null || subjectInfo?.MaxExamRate != null) || (examFromMap?.Rate != null)
   const examRate = hasExam
     ? {
-        rate: examFromMap?.Rate ?? examSub?.Rate ?? null,
-        max: examFromMap?.MaxRate ?? examSub?.MaxRate ?? null,
-      }
+      rate: subjectInfo?.ExamRate ?? examFromMap?.Rate ?? null,
+      max: subjectInfo?.MaxExamRate ?? examFromMap?.MaxRate ?? null,
+    }
     : null
 
   const renderTab = (key) => {
@@ -213,7 +204,7 @@ export default function DetailScreen({ route, navigation }) {
         }
         return (
           <View style={styles.moduleList}>
-            {modules.filter(m => !/экзамен|зачёт|зачет/i.test(m.Title || '')).map((mod, idx) => (
+            {modules.map((mod, idx) => (
               <ModuleCard key={idx} module={mod} submodules={submodules} />
             ))}
             {examRate && (
