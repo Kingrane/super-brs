@@ -522,7 +522,7 @@ function App() {
                 <p className="grade-caption">${grade.description}</p>
                 <dl className="kv-grid">
                     <div><dt>Тип</dt><dd>${formatDisciplineType(subject?.Type)}</dd></div>
-                    <div><dt>Баллы за экзамен</dt><dd className="mono">${examRate ?? "-"} / ${examMax ?? "-"}</dd></div>
+                    ${isExamType ? html`<div><dt>Баллы за экзамен</dt><dd className="mono">${examRate ?? "-"} / ${examMax ?? "-"}</dd></div>` : ''}
                     <div><dt>Баллы</dt><dd className="mono">${subject?.Rate ?? selectedDiscipline?.Rate ?? "-"} / ${subject?.MaxCurrentRate ?? selectedDiscipline?.MaxCurrentRate ?? "-"}</dd></div>
                 </dl>
             </div>
@@ -600,13 +600,12 @@ function App() {
         const isExamType = /exam|difftest|coursework/i.test(String(subjectInfo?.Type || ''))
 
         const examSubIds = new Set()
+        const examModuleIds = new Set()
         for (const [id, sm] of Object.entries(submodules)) {
             const t = (sm.Title || '').trim()
             if (t === '' && isExamType) examSubIds.add(id)
             else if (/экзамен|exam|зачёт|аттестац|итогов/i.test(t)) examSubIds.add(id)
         }
-
-        const examModuleIds = new Set()
         for (const mod of modules) {
             if (/экзамен|exam|зачёт|аттестац|итогов/i.test(mod.Title || '')) {
                 ; (mod.Submodules || []).forEach(id => examSubIds.add(id))
@@ -626,12 +625,12 @@ function App() {
         const exRate = examSubs.reduce((s, sm) => s + (Number(sm.Rate) || 0), 0)
         const exMax = 40
 
-        const examFoundInSubs = exRate > 0 || exMax > 0 || examSubIds.size > 0
-        const addExRate = examFoundInSubs ? 0 : (Number(examRate) || 0)
-        const addExMax = examFoundInSubs ? 0 : (Number(examMax) || 0)
+        const examFoundInSubs = examSubIds.size > 0
+        const addExRate = (examFoundInSubs || !isExamType) ? 0 : (Number(examRate) || 0)
+        const addExMax = (examFoundInSubs || !isExamType) ? 0 : (Number(examMax) || 0)
         const showExamRate = examFoundInSubs ? exRate : examRate
         const showExamMax = examFoundInSubs ? exMax : examMax
-        const hasExamData = examFoundInSubs || (examRate != null && examMax != null)
+        const hasExamData = isExamType && (examFoundInSubs || (examRate != null && examMax != null))
 
         const totalRate = regRate + exRate + addExRate
         const totalMax = 100
@@ -659,7 +658,7 @@ function App() {
                 `)}
                 <div className="module-total">
                     <span>Итого по модулям</span>
-                    <span className="mono">${regRate} / ${regMax}</span>
+                    <span className="mono">${regRate} / ${isExamType ? regMax : totalMax}</span>
                 </div>
                 ${hasExamData && html`
                     <div className="module-exam">

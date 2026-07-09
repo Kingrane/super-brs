@@ -136,8 +136,9 @@ export default function DetailScreen({ route, navigation }) {
     currentDiscipline ||
     {}
 
+  const isExamType = /exam|difftest|coursework/i.test(String(subjectInfo?.Type || ''))
   const examFromMap = disciplineMap?.Exam || disciplineMap?.Final || null
-  const hasExam = (subjectInfo?.ExamRate != null || subjectInfo?.MaxExamRate != null) || (examFromMap?.Rate != null)
+  const hasExam = isExamType && ((subjectInfo?.ExamRate != null || subjectInfo?.MaxExamRate != null) || (examFromMap?.Rate != null))
   const examRate = hasExam
     ? {
       rate: subjectInfo?.ExamRate ?? examFromMap?.Rate ?? null,
