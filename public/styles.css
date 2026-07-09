@@ -2669,6 +2669,59 @@ tbody tr:last-child td {
 }
 
 
+.module-total {
+
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 1rem;
+    align-items: baseline;
+    padding: 1rem 0.2rem 0.4rem;
+    margin-top: 0.5rem;
+    border-top: 2px solid var(--ink);
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--ink);
+
+}
+
+.module-total .mono {
+
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--ink-soft);
+
+}
+
+.module-exam {
+
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 1rem;
+    align-items: baseline;
+    padding: 1rem 0.2rem 0.4rem;
+    margin-top: 0.5rem;
+    border-top: 2px solid var(--accent);
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--accent);
+
+}
+
+.module-exam .mono {
+
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--ink-soft);
+
+}
+
+.module-total-grand {
+
+    border-top: 2px solid var(--ink);
+    font-weight: 700;
+
+}
+
 /* ---------- Teachers (directory style) ---------- */
 
 .teacher-list {

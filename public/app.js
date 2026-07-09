@@ -503,10 +503,18 @@ function App() {
         const markRaw = marks[String(selectedDiscipline.ID)] || marks[selectedDiscipline.ID] || ""
         const grade = getGradePresentation(markRaw, selectedDiscipline)
         const subject = detail.subject?.response?.Discipline || detail.journal?.response?.Discipline || selectedDiscipline
-        const _map = detail.subject?.response?.DisciplineMap
-        const _subs = detail.subject?.response?.Submodules || {}
-        const _examModule = Object.values(_map?.Modules || {}).find(m => /экзамен|зачёт|зачет/i.test(m.Title || ''))
-        const _examSub = _examModule ? _subs[_examModule.Submodules?.[0]] : null
+        const disciplineMap = detail.subject?.response?.DisciplineMap
+        const submodules = detail.subject?.response?.Submodules || {}
+
+        const isExamType = /exam|difftest|coursework/i.test(String(subject?.Type || ''))
+
+        const examFromSub = Object.values(submodules).find(sm => {
+            const t = (sm.Title || '').trim()
+            return t === '' || /экзамен|exam|зачёт|аттестац|итогов/i.test(t)
+        })
+
+        const examRate = subject?.ExamRate ?? subject?.Exam?.Rate ?? disciplineMap?.Exam?.Rate ?? disciplineMap?.Final?.Rate ?? examFromSub?.Rate ?? null
+        const examMax = subject?.MaxExamRate ?? subject?.Exam?.MaxRate ?? disciplineMap?.Exam?.MaxRate ?? disciplineMap?.Final?.MaxRate ?? examFromSub?.MaxRate ?? null
 
         return html`
             <div className="grade-panel">
@@ -514,10 +522,8 @@ function App() {
                 <p className="grade-caption">${grade.description}</p>
                 <dl className="kv-grid">
                     <div><dt>Тип</dt><dd>${formatDisciplineType(subject?.Type)}</dd></div>
-                    <div><dt>Семестр</dt><dd>${currentSemesterID || "-"}</dd></div>
+                    <div><dt>Баллы за экзамен</dt><dd className="mono">${examRate ?? "-"} / ${examMax ?? "-"}</dd></div>
                     <div><dt>Баллы</dt><dd className="mono">${subject?.Rate ?? selectedDiscipline?.Rate ?? "-"} / ${subject?.MaxCurrentRate ?? selectedDiscipline?.MaxCurrentRate ?? "-"}</dd></div>
-                    ${_examSub ? html`<div><dt>Экзамен</dt><dd className="mono">${_examSub.Rate ?? "-"} / ${_examSub.MaxRate ?? "-"}</dd></div>` : ''}
-                    <div><dt>ID дисциплины</dt><dd className="mono">${subject?.ID || selectedDiscipline?.ID || "-"}</dd></div>
                 </dl>
             </div>
         `
@@ -587,19 +593,58 @@ function App() {
         }
 
         const modules = Object.values(disciplineMap.Modules)
-        const examModule = modules.find(m => /экзамен|зачёт|зачет/i.test(m.Title || ''))
-        const examSub = examModule
-          ? submodules[examModule.Submodules?.[0]]
-          : null
+        const allSubmodules = Object.values(submodules)
+        const submoduleIds = Object.keys(submodules)
+
+        const subjectInfo = detail.subject?.response?.Discipline || detail.journal?.response?.Discipline || selectedDiscipline
+        const isExamType = /exam|difftest|coursework/i.test(String(subjectInfo?.Type || ''))
+
+        const examSubIds = new Set()
+        for (const [id, sm] of Object.entries(submodules)) {
+            const t = (sm.Title || '').trim()
+            if (t === '' && isExamType) examSubIds.add(id)
+            else if (/экзамен|exam|зачёт|аттестац|итогов/i.test(t)) examSubIds.add(id)
+        }
+
+        const examModuleIds = new Set()
+        for (const mod of modules) {
+            if (/экзамен|exam|зачёт|аттестац|итогов/i.test(mod.Title || '')) {
+                ; (mod.Submodules || []).forEach(id => examSubIds.add(id))
+                examModuleIds.add(mod.Title || '')
+            }
+        }
+
+        const examId = [...examSubIds][0] || null
+        const examSm = examId ? submodules[examId] : null
+        const examRate = subjectInfo?.ExamRate ?? subjectInfo?.Exam?.Rate ?? disciplineMap?.Exam?.Rate ?? disciplineMap?.Final?.Rate ?? examSm?.Rate ?? null
+        const examMax = 40
+
+        const regSubs = allSubmodules.filter((sm, i) => !examSubIds.has(submoduleIds[i]))
+        const examSubs = allSubmodules.filter((sm, i) => examSubIds.has(submoduleIds[i]))
+        const regRate = regSubs.reduce((s, sm) => s + (Number(sm.Rate) || 0), 0)
+        const regMax = regSubs.reduce((s, sm) => s + (Number(sm.MaxRate) || 0), 0)
+        const exRate = examSubs.reduce((s, sm) => s + (Number(sm.Rate) || 0), 0)
+        const exMax = 40
+
+        const examFoundInSubs = exRate > 0 || exMax > 0 || examSubIds.size > 0
+        const addExRate = examFoundInSubs ? 0 : (Number(examRate) || 0)
+        const addExMax = examFoundInSubs ? 0 : (Number(examMax) || 0)
+        const showExamRate = examFoundInSubs ? exRate : examRate
+        const showExamMax = examFoundInSubs ? exMax : examMax
+        const hasExamData = examFoundInSubs || (examRate != null && examMax != null)
+
+        const totalRate = regRate + exRate + addExRate
+        const totalMax = 100
+
         return html`
             <div className="module-list">
-                ${modules.filter(m => m !== examModule).map((module, idx) => html`
+                ${modules.map((module, idx) => html`
                     <article key=${`${idx}-${module.Title || "module"}`} className="module-card">
                         <header>
                             <h4>${module.Title || "Модуль"}</h4>
                         </header>
                         <ul>
-                            ${(module.Submodules || []).map((submoduleID) => {
+                            ${(module.Submodules || []).filter(id => !examSubIds.has(id)).map((submoduleID) => {
             const info = submodules[submoduleID] || {}
             return html`
                                     <li key=${String(submoduleID)}>
@@ -608,23 +653,24 @@ function App() {
                                     </li>
                                 `
         })}
-                            ${(module.Submodules || []).length === 0 && html`<li><span>Нет подмодулей</span><span className="mono">-</span></li>`}
+                            ${(module.Submodules || []).filter(id => !examSubIds.has(id)).length === 0 && html`<li><span>Нет подмодулей</span><span className="mono">-</span></li>`}
                         </ul>
                     </article>
                 `)}
-                ${examSub ? html`
-                    <article className="module-card module-card-exam">
-                        <header>
-                            <h4>Экзамен</h4>
-                        </header>
-                        <ul>
-                            <li>
-                                <span>Экзаменационная оценка</span>
-                                <span className="mono">${examSub.Rate ?? "-"} / ${examSub.MaxRate ?? "-"}</span>
-                            </li>
-                        </ul>
-                    </article>
-                ` : ''}
+                <div className="module-total">
+                    <span>Итого по модулям</span>
+                    <span className="mono">${regRate} / ${regMax}</span>
+                </div>
+                ${hasExamData && html`
+                    <div className="module-exam">
+                        <span>Экзамен</span>
+                        <span className="mono">${showExamRate ?? "-"} / ${showExamMax ?? "-"}</span>
+                    </div>
+                `}
+                <div className="module-total module-total-grand">
+                    <span>Итого</span>
+                    <span className="mono">${totalRate} / ${totalMax}</span>
+                </div>
             </div>
         `
     }
