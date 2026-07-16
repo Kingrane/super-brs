@@ -1,5 +1,9 @@
+import { Agent, setGlobalDispatcher } from "undici";
+
 export const GRADE_ORIGIN = "https://grade.sfedu.ru";
 export const API_BASE = "/api/v1";
+
+setGlobalDispatcher(new Agent({ connect: { rejectUnauthorized: false } }));
 
 export async function gradeFetch(path, init = {}) {
     const url = GRADE_ORIGIN + API_BASE + path;

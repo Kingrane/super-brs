@@ -3,3 +3,5 @@ node_modules
 nul
 .playwright-mcp
 *.log
+AGENTS.md
+design.md

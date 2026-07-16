@@ -1,7 +1,10 @@
 import { XMLParser } from 'fast-xml-parser'
+import { Agent, setGlobalDispatcher } from 'undici'
 import { sendError, requireMethod, passThroughJson } from '../../_http.js'
 import { validateToken, validateId } from '../../_studentApi.js'
 import { GRADE_ORIGIN } from '../../_gradeFetch.js'
+
+setGlobalDispatcher(new Agent({ connect: { rejectUnauthorized: false } }))
 
 const TIMEOUT = 12_000
 
