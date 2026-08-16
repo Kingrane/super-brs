@@ -22,6 +22,7 @@ import GradeBadge from '../components/GradeBadge'
 import JournalTable from '../components/JournalTable'
 import ModuleCard from '../components/ModuleCard'
 import TeacherRow from '../components/TeacherRow'
+import EventCard from '../components/EventCard'
 
 const TABS = [
   { key: 'grade', label: 'Оценка' },
@@ -39,8 +40,7 @@ export default function DetailScreen({ route, navigation }) {
   const [teachersMap, setTeachersMap] = useState({})
   const [journal, setJournal] = useState(null)
   const [subject, setSubject] = useState(null)
-  const [events, setEvents] = useState(null)
-  const [eventsLoading, setEventsLoading] = useState(false)
+  const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState('grade')
@@ -55,13 +55,6 @@ export default function DetailScreen({ route, navigation }) {
         fetchSubject(token, disciplineID).catch(() => null),
       ])
 
-      try {
-        const eventsJson = await fetchEvents(token, '', semesterID)
-        setEvents(eventsJson)
-      } catch {
-        setEvents(null)
-      }
-
       const idxResponse = idxJson?.response || {}
       const nextDisciplines = Array.isArray(idxResponse.Disciplines)
         ? idxResponse.Disciplines
@@ -74,6 +67,14 @@ export default function DetailScreen({ route, navigation }) {
       setTeachersMap(idxResponse.Teachers || {})
       setJournal(journalJson)
       setSubject(subjectJson)
+
+      const rId = idxResponse.RecordbookID || idxResponse.RecordBook || idxResponse.Student?.RecordbookID || idxResponse.Student?.RecordBook || idxResponse.Student?.ID || ''
+      try {
+        const eventsList = await fetchEvents(token, String(rId), semesterID)
+        setEvents(Array.isArray(eventsList) ? eventsList : [])
+      } catch {
+        setEvents([])
+      }
     } catch (err) {
       setError(err.message)
     } finally {
@@ -137,14 +138,43 @@ export default function DetailScreen({ route, navigation }) {
     {}
 
   const isExamType = /exam|difftest|coursework/i.test(String(subjectInfo?.Type || ''))
-  const examFromMap = disciplineMap?.Exam || disciplineMap?.Final || null
-  const hasExam = isExamType && ((subjectInfo?.ExamRate != null || subjectInfo?.MaxExamRate != null) || (examFromMap?.Rate != null))
-  const examRate = hasExam
-    ? {
-      rate: subjectInfo?.ExamRate ?? examFromMap?.Rate ?? null,
-      max: subjectInfo?.MaxExamRate ?? examFromMap?.MaxRate ?? null,
+
+  // Module Calculations (matching web App)
+  const allSubmodules = Object.values(submodules || {})
+  const submoduleIds = Object.keys(submodules || {})
+
+  const examSubIds = new Set()
+  for (const [id, sm] of Object.entries(submodules || {})) {
+    const t = (sm?.Title || '').trim()
+    if (t === '' && isExamType) examSubIds.add(id)
+    else if (/экзамен|exam|зачёт|аттестац|итогов/i.test(t)) examSubIds.add(id)
+  }
+  for (const mod of modules) {
+    if (/экзамен|exam|зачёт|аттестац|итогов/i.test(mod.Title || '')) {
+      ;(mod.Submodules || []).forEach(id => examSubIds.add(id))
     }
-    : null
+  }
+
+  const examId = [...examSubIds][0] || null
+  const examSm = examId ? submodules[examId] : null
+  const calcExamRate = subjectInfo?.ExamRate ?? subjectInfo?.Exam?.Rate ?? disciplineMap?.Exam?.Rate ?? disciplineMap?.Final?.Rate ?? examSm?.Rate ?? null
+  const examMax = 40
+
+  const regSubs = allSubmodules.filter((sm, i) => !examSubIds.has(submoduleIds[i]))
+  const examSubs = allSubmodules.filter((sm, i) => examSubIds.has(submoduleIds[i]))
+  const regRate = regSubs.reduce((s, sm) => s + (Number(sm.Rate) || 0), 0)
+  const regMax = regSubs.reduce((s, sm) => s + (Number(sm.MaxRate) || 0), 0)
+  const exRate = examSubs.reduce((s, sm) => s + (Number(sm.Rate) || 0), 0)
+  const exMax = 40
+
+  const examFoundInSubs = examSubIds.size > 0
+  const addExRate = (examFoundInSubs || !isExamType) ? 0 : (Number(calcExamRate) || 0)
+  const showExamRate = examFoundInSubs ? exRate : calcExamRate
+  const showExamMax = examFoundInSubs ? exMax : examMax
+  const hasExamData = isExamType && (examFoundInSubs || (calcExamRate != null && examMax != null))
+
+  const totalRate = regRate + exRate + addExRate
+  const totalMax = 100
 
   const renderTab = (key) => {
     switch (key) {
@@ -173,11 +203,11 @@ export default function DetailScreen({ route, navigation }) {
                     '-'}
                 </Text>
               </View>
-              {examRate && (
+              {isExamType && (
                 <View style={styles.kvRow}>
-                  <Text style={styles.kvKey}>Экзамен</Text>
+                  <Text style={styles.kvKey}>Баллы за экзамен</Text>
                   <Text style={[styles.kvVal, styles.mono]}>
-                    {examRate.rate ?? '-'} / {examRate.max ?? '-'}
+                    {showExamRate ?? '-'} / {showExamMax ?? '-'}
                   </Text>
                 </View>
               )}
@@ -206,16 +236,28 @@ export default function DetailScreen({ route, navigation }) {
         return (
           <View style={styles.moduleList}>
             {modules.map((mod, idx) => (
-              <ModuleCard key={idx} module={mod} submodules={submodules} />
+              <ModuleCard key={idx} module={mod} submodules={submodules} examSubIds={examSubIds} />
             ))}
-            {examRate && (
-              <View style={styles.examCard}>
-                <Text style={styles.examLabel}>Экзамен</Text>
-                <Text style={styles.examPoints}>
-                  {examRate.rate ?? '-'} / {examRate.max ?? '-'}
+            <View style={styles.moduleTotalRow}>
+              <Text style={styles.moduleTotalLabel}>Итого по модулям</Text>
+              <Text style={styles.moduleTotalValue}>
+                {regRate} / {isExamType ? regMax : totalMax}
+              </Text>
+            </View>
+            {hasExamData && (
+              <View style={styles.moduleExamRow}>
+                <Text style={styles.moduleExamLabel}>Экзамен</Text>
+                <Text style={styles.moduleExamValue}>
+                  {showExamRate ?? '-'} / {showExamMax ?? '-'}
                 </Text>
               </View>
             )}
+            <View style={[styles.moduleTotalRow, styles.moduleGrandTotalRow]}>
+              <Text style={styles.moduleGrandTotalLabel}>Итого</Text>
+              <Text style={styles.moduleGrandTotalValue}>
+                {totalRate} / {totalMax}
+              </Text>
+            </View>
           </View>
         )
 
@@ -237,31 +279,18 @@ export default function DetailScreen({ route, navigation }) {
         )
 
       case 'events': {
-        if (!events) {
+        if (!events || events.length === 0) {
           return (
             <StateEmpty
-              title="История недоступна"
-              description="Не удалось загрузить историю событий."
-            />
-          )
-        }
-        const eventList = Array.isArray(events.event) ? events.event : []
-        if (eventList.length === 0) {
-          return (
-            <StateEmpty
-              title="Нет событий"
-              description="История событий пуста."
+              title="История пуста"
+              description="Записей в истории событий не найдено."
             />
           )
         }
         return (
           <View style={styles.eventList}>
-            {eventList.map((ev, idx) => (
-              <View key={idx} style={styles.eventRow}>
-                <Text style={styles.eventDate}>{ev.Date || ev.date || '-'}</Text>
-                <Text style={styles.eventType}>{ev.Type || ev.type || '-'}</Text>
-                <Text style={styles.eventTopic}>{ev.Topic || ev.topic || ev.Name || ev.name || ''}</Text>
-              </View>
+            {events.map((ev, idx) => (
+              <EventCard key={ev.id || String(idx)} event={ev} />
             ))}
           </View>
         )
@@ -434,58 +463,61 @@ const styles = StyleSheet.create({
   moduleList: {
     gap: 0,
   },
-  examCard: {
+  moduleTotalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'baseline',
-    backgroundColor: colors.surface,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    marginTop: 12,
-    borderWidth: 1,
-    borderColor: colors.accentLine,
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+    marginTop: 8,
   },
-  examLabel: {
+  moduleTotalLabel: {
     fontSize: 14,
-    fontFamily: fonts.display,
-    fontStyle: 'italic',
-    fontWeight: '500',
-    color: colors.accent,
+    fontFamily: fonts.body,
+    fontWeight: '600',
+    color: colors.ink,
   },
-  examPoints: {
+  moduleTotalValue: {
     fontSize: 13,
     fontFamily: fonts.mono,
+    color: colors.inkSoft,
+  },
+  moduleExamRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+    marginTop: 4,
+  },
+  moduleExamLabel: {
+    fontSize: 14,
+    fontFamily: fonts.body,
+    fontWeight: '600',
+    color: colors.accent,
+  },
+  moduleExamValue: {
+    fontSize: 13,
+    fontFamily: fonts.mono,
+    color: colors.accent,
+  },
+  moduleGrandTotalRow: {
+    paddingVertical: 14,
+    marginTop: 4,
+  },
+  moduleGrandTotalLabel: {
+    fontSize: 15,
+    fontFamily: fonts.body,
+    fontWeight: '700',
+    color: colors.ink,
+  },
+  moduleGrandTotalValue: {
+    fontSize: 14,
+    fontFamily: fonts.mono,
+    fontWeight: '700',
     color: colors.ink,
   },
   eventList: {
     gap: 0,
-  },
-  eventRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.ruleSoft,
-    gap: 4,
-  },
-  eventDate: {
-    fontSize: 11,
-    fontFamily: fonts.mono,
-    color: colors.inkMute,
-    width: '100%',
-    marginBottom: 2,
-  },
-  eventType: {
-    fontSize: 11,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    color: colors.inkSoft,
-    marginRight: 8,
-  },
-  eventTopic: {
-    fontSize: 13,
-    color: colors.ink,
-    flex: 1,
   },
 })

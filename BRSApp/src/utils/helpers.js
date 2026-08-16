@@ -138,3 +138,74 @@ export function getIndexTeachersForDiscipline(teachersMap, disciplineID) {
   if (typeof value === 'object') return Object.values(value)
   return []
 }
+
+export function parseEventsData(xmlOrObj) {
+  if (!xmlOrObj) return []
+  let items = []
+
+  if (typeof xmlOrObj === 'string') {
+    const itemRegex = /<item[^>]*>([\s\S]*?)<\/item>/gi
+    let match
+    while ((match = itemRegex.exec(xmlOrObj)) !== null) {
+      const content = match[1]
+      const getTag = tag => {
+        const m = content.match(
+          new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'i')
+        )
+        return m ? m[1].replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1').trim() : ''
+      }
+
+      const title = getTag('title') || 'выставлены баллы'
+      const pubDate = getTag('pubDate') || getTag('date') || '-'
+      const author = getTag('author') || getTag('teacher') || '-'
+      const category =
+        getTag('category') ||
+        getTag('discipline') ||
+        getTag('subject') ||
+        '-'
+      const desc = getTag('description') || ''
+
+      let dateFormatted = pubDate
+      if (pubDate !== '-') {
+        const parsed = new Date(pubDate)
+        if (!isNaN(parsed.getTime())) {
+          dateFormatted =
+            parsed.toLocaleDateString('ru-RU') +
+            ' ' +
+            parsed.toLocaleTimeString('ru-RU', {
+              hour: '2-digit',
+              minute: '2-digit',
+            })
+        }
+      }
+
+      let section = '-'
+      let subsection = '-'
+      let value = '-'
+
+      if (desc) {
+        const secM = desc.match(/Раздел:\s*([^;]+)/i)
+        if (secM) section = secM[1].trim()
+
+        const subM = desc.match(/Подраздел:\s*([^;]+)/i)
+        if (subM) subsection = subM[1].trim()
+
+        const valM = desc.match(/(?:Значение|Балл|Оценка):\s*([^;]+)/i)
+        if (valM) value = valM[1].trim()
+      }
+
+      items.push({
+        id: `${items.length}-${dateFormatted}`,
+        date: dateFormatted,
+        event: title,
+        teacher: author,
+        discipline: category,
+        value,
+        section,
+        subsection,
+      })
+    }
+  }
+
+  return items
+}

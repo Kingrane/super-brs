@@ -87,8 +87,10 @@ async function apiGetText(url) {
   }
 }
 
+import { parseEventsData } from '../utils/helpers'
+
 export async function fetchEvents(token, recordbookID, semesterID) {
   const query = buildQuery({ token, recordbookID, semesterID })
   const xml = await apiGetText(`${ENDPOINTS.events}?${query}`)
-  return parseSimpleXml(xml) || { raw: xml }
+  return parseEventsData(xml)
 }

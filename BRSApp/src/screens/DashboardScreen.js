@@ -5,28 +5,31 @@ import {
   FlatList,
   TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
   StatusBar,
-  useWindowDimensions,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { colors, fonts } from '../theme'
-import { fetchSemesters, fetchIndex } from '../api/client'
-import { clearStoredAuth, getStoredAuth } from '../utils/storage'
+import { fetchSemesters, fetchIndex, fetchEvents } from '../api/client'
+import { clearStoredAuth } from '../utils/storage'
 import { formatSemesterLabel } from '../utils/helpers'
 import DisciplineCard from '../components/DisciplineCard'
+import EventCard from '../components/EventCard'
+import SemesterPicker from '../components/SemesterPicker'
 import StateLoading from '../components/StateLoading'
 import StateError from '../components/StateError'
+import StateEmpty from '../components/StateEmpty'
 
 export default function DashboardScreen({ route, navigation }) {
   const insets = useSafeAreaInsets()
-  const { width } = useWindowDimensions()
   const { token } = route.params
+  const [mainNav, setMainNav] = useState('disciplines') // 'disciplines' | 'events'
   const [semesters, setSemesters] = useState([])
   const [currentSemesterID, setCurrentSemesterID] = useState(route.params?.semesterID || '')
+  const [recordbookID, setRecordbookID] = useState('')
   const [disciplines, setDisciplines] = useState([])
   const [marks, setMarks] = useState({})
   const [teachersMap, setTeachersMap] = useState({})
+  const [globalEvents, setGlobalEvents] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -46,9 +49,21 @@ export default function DashboardScreen({ route, navigation }) {
       setSemesters(list)
 
       const idxResponse = idxJson?.response || {}
-      setDisciplines(Array.isArray(idxResponse.Disciplines) ? idxResponse.Disciplines : [])
+      const nextDisciplines = Array.isArray(idxResponse.Disciplines) ? idxResponse.Disciplines : []
+      const rId = idxResponse.RecordbookID || idxResponse.RecordBook || idxResponse.Student?.RecordbookID || idxResponse.Student?.RecordBook || idxResponse.Student?.ID || ''
+      
+      setDisciplines(nextDisciplines)
       setMarks(idxResponse.Marks || {})
       setTeachersMap(idxResponse.Teachers || {})
+      setRecordbookID(String(rId))
+
+      // Load global events for the semester
+      try {
+        const eventsList = await fetchEvents(token, String(rId), semesterID)
+        setGlobalEvents(Array.isArray(eventsList) ? eventsList : [])
+      } catch {
+        setGlobalEvents([])
+      }
     } catch (err) {
       setError(err.message)
     } finally {
@@ -78,11 +93,11 @@ export default function DashboardScreen({ route, navigation }) {
   }
 
   const renderHeader = () => (
-    <View>
+    <View style={styles.headerContainer}>
       <View style={[styles.topbar, { paddingTop: insets.top + 12 }]}>
         <View style={styles.topbarLeft}>
           <Text style={styles.kicker}>БРС ЮФУ</Text>
-          <Text style={styles.topTitle}>Мои дисциплины</Text>
+          <Text style={styles.topTitle}>Сервис БРС</Text>
         </View>
         <View style={styles.topActions}>
           <TouchableOpacity style={styles.btn} onPress={handleRefresh}>
@@ -94,33 +109,41 @@ export default function DashboardScreen({ route, navigation }) {
         </View>
       </View>
 
-      <View style={styles.semesterBar}>
-        <Text style={styles.semesterLabel}>Семестр</Text>
-        <View style={styles.semesterChips}>
-          {semesters.map((s) => {
-            const active = String(s.ID) === String(currentSemesterID)
-            return (
-              <TouchableOpacity
-                key={String(s.ID)}
-                style={[styles.chip, active && styles.chipActive]}
-                onPress={() => handleSemesterPress(String(s.ID))}>
-                <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                  {formatSemesterLabel(s)}
-                </Text>
-              </TouchableOpacity>
-            )
-          })}
-        </View>
+      <View style={styles.navToggleRow}>
+        <TouchableOpacity
+          style={[styles.navBtn, mainNav === 'disciplines' && styles.navBtnActive]}
+          onPress={() => setMainNav('disciplines')}>
+          <Text style={[styles.navBtnText, mainNav === 'disciplines' && styles.navBtnTextActive]}>
+            Дисциплины
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.navBtn, mainNav === 'events' && styles.navBtnActive]}
+          onPress={() => setMainNav('events')}>
+          <Text style={[styles.navBtnText, mainNav === 'events' && styles.navBtnTextActive]}>
+            История событий
+          </Text>
+        </TouchableOpacity>
       </View>
 
+      <SemesterPicker
+        semesters={semesters}
+        currentID={currentSemesterID}
+        onSelect={handleSemesterPress}
+      />
+
       <View style={styles.listHeader}>
-        <Text style={styles.listTitle}>Список дисциплин</Text>
-        <Text style={styles.listCount}>{String(disciplines.length)}</Text>
+        <Text style={styles.listTitle}>
+          {mainNav === 'disciplines' ? 'Список дисциплин' : 'История событий'}
+        </Text>
+        <Text style={styles.listCount}>
+          {mainNav === 'disciplines' ? String(disciplines.length) : String(globalEvents.length)}
+        </Text>
       </View>
     </View>
   )
 
-  if (loading && disciplines.length === 0) {
+  if (loading && disciplines.length === 0 && globalEvents.length === 0) {
     return (
       <View style={styles.root}>
         <StatusBar barStyle="dark-content" backgroundColor={colors.paper} />
@@ -147,20 +170,36 @@ export default function DashboardScreen({ route, navigation }) {
   return (
     <View style={styles.root}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.paper} />
-      <FlatList
-        data={disciplines}
-        keyExtractor={(item) => String(item.ID)}
-        ListHeaderComponent={renderHeader}
-        renderItem={({ item }) => (
-          <DisciplineCard
-            discipline={item}
-            mark={marks[String(item.ID)] || marks[item.ID] || ''}
-            teachersMap={teachersMap}
-            onPress={handleDisciplinePress}
-          />
-        )}
-        contentContainerStyle={styles.listContent}
-      />
+      {mainNav === 'disciplines' ? (
+        <FlatList
+          data={disciplines}
+          keyExtractor={(item) => String(item.ID)}
+          ListHeaderComponent={renderHeader}
+          ListEmptyComponent={
+            <StateEmpty title="Нет дисциплин" description="В выбранном семестре не найдено дисциплин." />
+          }
+          renderItem={({ item }) => (
+            <DisciplineCard
+              discipline={item}
+              mark={marks[String(item.ID)] || marks[item.ID] || ''}
+              teachersMap={teachersMap}
+              onPress={handleDisciplinePress}
+            />
+          )}
+          contentContainerStyle={styles.listContent}
+        />
+      ) : (
+        <FlatList
+          data={globalEvents}
+          keyExtractor={(item, index) => item.id || String(index)}
+          ListHeaderComponent={renderHeader}
+          ListEmptyComponent={
+            <StateEmpty title="История пуста" description="Записей в истории событий не найдено." />
+          }
+          renderItem={({ item }) => <EventCard event={item} />}
+          contentContainerStyle={styles.listContent}
+        />
+      )}
     </View>
   )
 }
@@ -170,8 +209,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.paper,
   },
-  listContent: {
+  headerContainer: {
     paddingHorizontal: 16,
+  },
+  listContent: {
     paddingBottom: 32,
   },
   topbar: {
@@ -196,11 +237,11 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   topTitle: {
-    fontSize: 28,
+    fontSize: 26,
     fontFamily: fonts.display,
     fontWeight: '400',
     color: colors.ink,
-    lineHeight: 30,
+    lineHeight: 28,
   },
   topActions: {
     flexDirection: 'row',
@@ -229,6 +270,33 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     color: colors.accent,
+  },
+  navToggleRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 14,
+  },
+  navBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: colors.rule2,
+    alignItems: 'center',
+    backgroundColor: colors.paper,
+  },
+  navBtnActive: {
+    backgroundColor: colors.ink,
+    borderColor: colors.ink,
+  },
+  navBtnText: {
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    color: colors.ink,
+  },
+  navBtnTextActive: {
+    color: colors.paper,
   },
   semesterBar: {
     marginBottom: 16,

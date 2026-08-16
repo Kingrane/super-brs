@@ -1,6 +1,14 @@
-import React from 'react'
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
-import { colors } from '../theme'
+import React, { useState } from 'react'
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Modal,
+  FlatList,
+  StyleSheet,
+  TouchableWithoutFeedback,
+} from 'react-native'
+import { colors, fonts } from '../theme'
 import { formatSemesterLabel } from '../utils/helpers'
 
 export default function SemesterPicker({
@@ -8,29 +16,64 @@ export default function SemesterPicker({
   currentID,
   onSelect,
 }) {
-  const options = semesters.map(s => ({
-    value: String(s.ID),
-    label: formatSemesterLabel(s),
-  }))
+  const [modalVisible, setModalVisible] = useState(false)
+
+  const selectedSem = semesters.find((s) => String(s.ID) === String(currentID))
+  const selectedLabel = selectedSem ? formatSemesterLabel(selectedSem) : 'Выберите семестр'
+
+  const handlePick = (id) => {
+    onSelect(id)
+    setModalVisible(false)
+  }
 
   return (
     <View style={styles.container}>
       <Text style={styles.label}>Семестр</Text>
-      <View style={styles.list}>
-        {options.map(opt => {
-          const active = String(opt.value) === String(currentID)
-          return (
-            <TouchableOpacity
-              key={opt.value}
-              style={[styles.chip, active && styles.chipActive]}
-              onPress={() => onSelect(opt.value)}>
-              <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                {opt.label}
-              </Text>
-            </TouchableOpacity>
-          )
-        })}
-      </View>
+      <TouchableOpacity
+        style={styles.trigger}
+        onPress={() => setModalVisible(true)}
+        activeOpacity={0.75}>
+        <Text style={styles.triggerText}>{selectedLabel}</Text>
+        <Text style={styles.arrow}>▼</Text>
+      </TouchableOpacity>
+
+      <Modal
+        visible={modalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setModalVisible(false)}>
+        <TouchableWithoutFeedback onPress={() => setModalVisible(false)}>
+          <View style={styles.overlay}>
+            <TouchableWithoutFeedback>
+              <View style={styles.modalCard}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Выбор семестра</Text>
+                  <TouchableOpacity onPress={() => setModalVisible(false)} padding={4}>
+                    <Text style={styles.closeBtn}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+                <FlatList
+                  data={semesters}
+                  keyExtractor={(item) => String(item.ID)}
+                  renderItem={({ item }) => {
+                    const active = String(item.ID) === String(currentID)
+                    return (
+                      <TouchableOpacity
+                        style={[styles.itemRow, active && styles.itemRowActive]}
+                        onPress={() => handlePick(String(item.ID))}>
+                        <Text style={[styles.itemText, active && styles.itemTextActive]}>
+                          {formatSemesterLabel(item)}
+                        </Text>
+                        {active && <Text style={styles.checkMark}>✓</Text>}
+                      </TouchableOpacity>
+                    )
+                  }}
+                />
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
     </View>
   )
 }
@@ -45,28 +88,86 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 2,
     color: colors.inkSoft,
-    marginBottom: 8,
+    marginBottom: 6,
   },
-  list: {
+  trigger: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  chip: {
+    justifyContent: 'space-between',
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.rule2,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+    backgroundColor: colors.paper,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
   },
-  chipActive: {
-    borderColor: colors.accent,
+  triggerText: {
+    fontSize: 14,
+    fontFamily: fonts.body,
+    fontWeight: '500',
+    color: colors.ink,
+  },
+  arrow: {
+    fontSize: 10,
+    color: colors.accent,
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(14, 20, 28, 0.45)',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  modalCard: {
+    backgroundColor: colors.paper,
+    borderWidth: 1,
+    borderColor: colors.rule2,
+    maxHeight: 380,
+    paddingVertical: 8,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.rule,
+  },
+  modalTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
+    color: colors.ink,
+  },
+  closeBtn: {
+    fontSize: 16,
+    color: colors.inkMute,
+    paddingHorizontal: 4,
+  },
+  itemRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.ruleSoft,
+  },
+  itemRowActive: {
     backgroundColor: colors.accentSoft,
   },
-  chipText: {
-    fontSize: 12,
-    color: colors.inkSoft,
+  itemText: {
+    fontSize: 15,
+    fontFamily: fonts.body,
+    color: colors.ink,
   },
-  chipTextActive: {
+  itemTextActive: {
+    fontWeight: '600',
     color: colors.accent,
+  },
+  checkMark: {
+    fontSize: 14,
+    color: colors.accent,
+    fontWeight: 'bold',
   },
 })
