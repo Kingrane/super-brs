@@ -1,0 +1,319 @@
+import React, { useEffect, useMemo, useRef, useState } from "react"
+import { ENDPOINTS, fetchJson } from "./api/client"
+import { getStoredAuth, setStoredAuth, clearStoredAuth, isLikelyToken } from "./utils/storage"
+import { getIndexTeachersForDiscipline } from "./utils/formatters"
+import LoginView from "./views/LoginView"
+import DashboardView from "./views/DashboardView"
+
+const INITIAL_REQUEST = {
+    semesters: "idle",
+    index: "idle",
+    detail: "idle",
+    globalEvents: "idle"
+}
+
+export default function App() {
+    const [tokenInput, setTokenInput] = useState("")
+    const [token, setToken] = useState("")
+    const [remember, setRemember] = useState(false)
+    const [view, setView] = useState("login")
+    const [mainNav, setMainNav] = useState("disciplines") // "disciplines" | "events"
+    const [loginStatus, setLoginStatus] = useState({ message: "", type: "" })
+
+    const [semesters, setSemesters] = useState([])
+    const [currentSemesterID, setCurrentSemesterID] = useState("")
+    const [recordbookID, setRecordbookID] = useState("")
+    const [disciplines, setDisciplines] = useState([])
+    const [marks, setMarks] = useState({})
+    const [teachersMap, setTeachersMap] = useState({})
+    const [selectedDisciplineID, setSelectedDisciplineID] = useState("")
+    const [globalEventsData, setGlobalEventsData] = useState(null)
+    const [debugLog, setDebugLog] = useState({})
+    const [request, setRequest] = useState(INITIAL_REQUEST)
+    const [lastMainLoadError, setLastMainLoadError] = useState("")
+    const [activeTab, setActiveTab] = useState("grade")
+
+    const detailCacheRef = useRef(new Map())
+
+    const selectedDiscipline = useMemo(
+        () => disciplines.find((discipline) => String(discipline.ID) === String(selectedDisciplineID)) || null,
+        [disciplines, selectedDisciplineID]
+    )
+
+    const detail = useMemo(() => {
+        if (!currentSemesterID || !selectedDisciplineID) {
+            return { journal: null, subject: null, events: null }
+        }
+        return detailCacheRef.current.get(`${currentSemesterID}:${selectedDisciplineID}`) || { journal: null, subject: null, events: null }
+    }, [currentSemesterID, selectedDisciplineID, request.detail])
+
+    const handleDebugLog = (url, payload) => {
+        setDebugLog((prev) => ({ ...prev, [url]: payload }))
+    }
+
+    const loadSemesters = async (authToken) => {
+        setRequest((prev) => ({ ...prev, semesters: "loading" }))
+        const json = await fetchJson(ENDPOINTS.semesters, { token: authToken }, handleDebugLog)
+        const response = json?.response || {}
+        const list = Array.isArray(response) ? response : Object.values(response)
+        list.sort((a, b) => Number(b.ID || 0) - Number(a.ID || 0))
+
+        const nextSemester = list[0] ? String(list[0].ID) : ""
+        setSemesters(list)
+        setCurrentSemesterID(nextSemester)
+        setRequest((prev) => ({ ...prev, semesters: "success" }))
+        return nextSemester
+    }
+
+    const loadGlobalEvents = async (authToken, semesterID, rId) => {
+        setRequest((prev) => ({ ...prev, globalEvents: "loading" }))
+        try {
+            const json = await fetchJson(ENDPOINTS.globalEvents, {
+                token: authToken,
+                semesterID: semesterID,
+                recordbookID: rId || recordbookID
+            }, handleDebugLog)
+            setGlobalEventsData(json)
+            setRequest((prev) => ({ ...prev, globalEvents: "success" }))
+        } catch {
+            setRequest((prev) => ({ ...prev, globalEvents: "error" }))
+        }
+    }
+
+    const loadIndex = async (authToken, semesterID) => {
+        if (!semesterID) {
+            setDisciplines([])
+            setMarks({})
+            setTeachersMap({})
+            setRequest((prev) => ({ ...prev, index: "success" }))
+            return ""
+        }
+
+        setRequest((prev) => ({ ...prev, index: "loading" }))
+        try {
+            const json = await fetchJson(ENDPOINTS.index, {
+                token: authToken,
+                SemesterID: semesterID
+            }, handleDebugLog)
+            const response = json?.response || {}
+            const nextDisciplines = Array.isArray(response.Disciplines) ? response.Disciplines : []
+            const rId = response.RecordbookID || response.RecordBook || response.Student?.RecordbookID || response.Student?.RecordBook || response.Student?.ID || ""
+            
+            setDisciplines(nextDisciplines)
+            setMarks(response.Marks || {})
+            setTeachersMap(response.Teachers || {})
+            setRecordbookID(String(rId))
+
+            setSelectedDisciplineID((prev) => {
+                if (!prev) return ""
+                const stillExists = nextDisciplines.some((discipline) => String(discipline.ID) === String(prev))
+                return stillExists ? prev : ""
+            })
+
+            setRequest((prev) => ({ ...prev, index: "success" }))
+            setLastMainLoadError("")
+            return String(rId)
+        } catch (error) {
+            setRequest((prev) => ({ ...prev, index: "error" }))
+            setLastMainLoadError(error.message)
+            throw error
+        }
+    }
+
+    const selectDiscipline = async (disciplineID, options = {}) => {
+        const nextID = String(disciplineID)
+        setSelectedDisciplineID(nextID)
+
+        const cacheKey = `${currentSemesterID}:${nextID}`
+        if (!options.forceReload && detailCacheRef.current.has(cacheKey)) {
+            setRequest((prev) => ({ ...prev, detail: "success" }))
+            return
+        }
+
+        setRequest((prev) => ({ ...prev, detail: "loading" }))
+
+        try {
+            const [journalResult, subjectResult, eventsResult] = await Promise.all([
+                fetchJson(ENDPOINTS.journal, { token, id: nextID }, handleDebugLog).catch(() => null),
+                fetchJson(ENDPOINTS.subject, { token, id: nextID }, handleDebugLog).catch(() => null),
+                fetchJson(ENDPOINTS.events, { token, id: nextID, semesterID: currentSemesterID, recordbookID }, handleDebugLog).catch(() => null)
+            ])
+
+            detailCacheRef.current.set(cacheKey, {
+                journal: journalResult,
+                subject: subjectResult,
+                events: eventsResult
+            })
+            setRequest((prev) => ({ ...prev, detail: "success" }))
+        } catch {
+            setRequest((prev) => ({ ...prev, detail: "error" }))
+        }
+    }
+
+    const loadDashboardData = async (authToken) => {
+        setLastMainLoadError("")
+        const semesterID = await loadSemesters(authToken)
+        const rId = await loadIndex(authToken, semesterID)
+        await loadGlobalEvents(authToken, semesterID, rId)
+    }
+
+    const runLogin = async (authToken, rememberFlag, isAuto = false) => {
+        setToken(authToken)
+        setRemember(rememberFlag)
+        setStoredAuth(authToken, rememberFlag)
+        if (!isAuto) {
+            setLoginStatus({ message: "Проверка токена...", type: "" })
+        }
+
+        try {
+            await loadDashboardData(authToken)
+            setView("dashboard")
+            setLoginStatus({ message: "", type: "" })
+        } catch (error) {
+            if (isAuto) {
+                setView("login")
+                setLoginStatus({ message: "Не удалось автоматически войти. Проверьте токен.", type: "error" })
+                return
+            }
+            setLoginStatus({ message: `Ошибка входа: ${error.message}`, type: "error" })
+        }
+    }
+
+    const handleLogin = async () => {
+        const authToken = tokenInput.trim()
+        if (!isLikelyToken(authToken)) {
+            setLoginStatus({ message: "Введите валидный токен (обычно 36-40 символов).", type: "error" })
+            return
+        }
+
+        await runLogin(authToken, remember)
+    }
+
+    const handleLogout = () => {
+        clearStoredAuth()
+        setTokenInput("")
+        setToken("")
+        setRemember(false)
+        setSemesters([])
+        setCurrentSemesterID("")
+        setRecordbookID("")
+        setDisciplines([])
+        setMarks({})
+        setTeachersMap({})
+        setSelectedDisciplineID("")
+        setGlobalEventsData(null)
+
+        setDebugLog({})
+        detailCacheRef.current.clear()
+        setRequest(INITIAL_REQUEST)
+        setLastMainLoadError("")
+        setActiveTab("grade")
+        setMainNav("disciplines")
+        setLoginStatus({ message: "", type: "" })
+        setView("login")
+    }
+
+    const handleRefresh = async () => {
+        try {
+            const rId = await loadIndex(token, currentSemesterID)
+            await loadGlobalEvents(token, currentSemesterID, rId)
+            if (selectedDisciplineID) {
+                await selectDiscipline(selectedDisciplineID, { forceReload: true })
+            }
+        } catch {
+            return
+        }
+    }
+
+    const handleSemesterChange = async (event) => {
+        const semesterID = event.target.value
+        setCurrentSemesterID(semesterID)
+        setSelectedDisciplineID("")
+        try {
+            const rId = await loadIndex(token, semesterID)
+            await loadGlobalEvents(token, semesterID, rId)
+        } catch {
+            return
+        }
+    }
+
+    const handlePaste = async () => {
+        try {
+            const text = await navigator.clipboard.readText()
+            setTokenInput(text.trim())
+        } catch {
+            setLoginStatus({ message: "Браузер не дал доступ к буферу обмена.", type: "error" })
+        }
+    }
+
+    useEffect(() => {
+        const storedAuth = getStoredAuth()
+        if (storedAuth.token) {
+            setTokenInput(storedAuth.token)
+            setRemember(storedAuth.remember)
+        }
+    }, [])
+
+    const mergedTeachers = useMemo(() => {
+        if (!selectedDiscipline) return []
+        const fromJournal = Array.isArray(detail.journal?.response?.Teachers) ? detail.journal.response.Teachers : []
+        const fromSubject = Array.isArray(detail.subject?.response?.Teachers) ? detail.subject.response.Teachers : []
+        const fromIndex = getIndexTeachersForDiscipline(teachersMap, selectedDiscipline.ID)
+        const merged = [...fromJournal, ...fromSubject, ...fromIndex]
+        const uniq = []
+        const seen = new Set()
+
+        for (const teacher of merged) {
+            const key = String(teacher.ID || teacher.TeacherID || teacher.Name || `${teacher.LastName}-${teacher.FirstName}`)
+            if (!seen.has(key)) {
+                seen.add(key)
+                uniq.push(teacher)
+            }
+        }
+
+        return uniq
+    }, [detail, selectedDiscipline, teachersMap])
+
+    return (
+        <div>
+            <LoginView
+                active={view === "login"}
+                tokenInput={tokenInput}
+                setTokenInput={setTokenInput}
+                remember={remember}
+                setRemember={setRemember}
+                loginStatus={loginStatus}
+                handleLogin={handleLogin}
+                handlePaste={handlePaste}
+            />
+
+            <DashboardView
+                active={view === "dashboard"}
+                mainNav={mainNav}
+                setMainNav={setMainNav}
+                token={token}
+                semesters={semesters}
+                currentSemesterID={currentSemesterID}
+                handleSemesterChange={handleSemesterChange}
+                disciplines={disciplines}
+                marks={marks}
+                teachersMap={teachersMap}
+                selectedDisciplineID={selectedDisciplineID}
+                selectedDiscipline={selectedDiscipline}
+                selectDiscipline={selectDiscipline}
+                detail={detail}
+                globalEventsData={globalEventsData}
+                request={request}
+                lastMainLoadError={lastMainLoadError}
+                loadIndex={loadIndex}
+                loadGlobalEvents={loadGlobalEvents}
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
+                mergedTeachers={mergedTeachers}
+                debugLog={debugLog}
+                handleRefresh={handleRefresh}
+                handleLogout={handleLogout}
+            />
+        </div>
+    )
+}

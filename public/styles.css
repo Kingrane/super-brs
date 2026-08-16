@@ -1186,58 +1186,15 @@ textarea.input {
 }
 
 .btn:hover {
-
-    color: var(--accent);
-
     border-color: var(--accent);
-
-}
-
-.btn:hover::before {
-    width: 100%;
-}
-
-.btn:active {
-    transform: translateY(1px);
-}
-
-.btn:disabled,
-
-.btn[aria-disabled="true"] {
-
-    opacity: 0.4;
-
-    cursor: not-allowed;
-
-    transform: none;
-
-}
-
-.btn:disabled::before,
-
-.btn[aria-disabled="true"]::before {
-    display: none;
-}
-
-
-.btn-primary {
-
-    --btn-bg: var(--ink);
-
-    --btn-fg: var(--paper);
-
-    --btn-border: var(--ink);
-
 }
 
 .btn-primary:hover {
-
     --btn-bg: var(--accent);
-
     --btn-fg: var(--paper);
-
     --btn-border: var(--accent);
-
+    color: var(--paper);
+    background-color: var(--accent);
 }
 
 

@@ -1,13 +1,15 @@
-import React from 'react'
-import { View, Text, StyleSheet } from 'react-native'
-import { colors, fonts } from '../theme'
+import React from "react";
+import { View, Text, StyleSheet } from "react-native";
+import { colors, fonts } from "../theme";
 
 export default function ModuleCard({ module, submodules }) {
-  const subs = (module.Submodules || []).map(id => submodules[id]).filter(Boolean)
+  const subs = (module.Submodules || [])
+    .map((id) => submodules[id])
+    .filter(Boolean);
 
   return (
     <View style={styles.card}>
-      <Text style={styles.title}>{module.Title || 'Модуль'}</Text>
+      <Text style={styles.title}>{module.Title || "Модуль"}</Text>
       {subs.length === 0 && (
         <View style={styles.row}>
           <Text style={styles.subName}>Нет подмодулей</Text>
@@ -16,14 +18,14 @@ export default function ModuleCard({ module, submodules }) {
       )}
       {subs.map((sub, idx) => (
         <View key={String(idx)} style={styles.row}>
-          <Text style={styles.subName}>{sub.Title || 'Подмодуль'}</Text>
+          <Text style={styles.subName}>{sub.Title || "Подмодуль"}</Text>
           <Text style={styles.subPoints}>
-            {sub.Rate ?? '-'} / {sub.MaxRate ?? '-'}
+            {sub.Rate ?? "-"} / {sub.MaxRate ?? "-"}
           </Text>
         </View>
       ))}
     </View>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
@@ -35,9 +37,9 @@ const styles = StyleSheet.create({
     marginVertical: 6,
     marginHorizontal: 2,
     borderWidth: 1,
-    borderStyle: 'dashed',
+    borderStyle: "dashed",
     borderColor: colors.ruleLight,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
     shadowRadius: 3,
@@ -46,15 +48,15 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 14,
     fontFamily: fonts.display,
-    fontStyle: 'italic',
-    fontWeight: '500',
+    fontStyle: "italic",
+    fontWeight: "500",
     color: colors.ink,
     marginBottom: 8,
   },
   row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'baseline',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "baseline",
     paddingVertical: 4,
     borderTopWidth: 1,
     borderTopColor: colors.ruleLight,
@@ -72,4 +74,4 @@ const styles = StyleSheet.create({
     fontFamily: fonts.mono,
     marginLeft: 12,
   },
-})
+});

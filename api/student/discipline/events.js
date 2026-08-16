@@ -1,34 +1,7 @@
 import { XMLParser } from 'fast-xml-parser'
-import { Agent, setGlobalDispatcher } from 'undici'
+import { gradeFetch } from '../../_gradeFetch.js'
 import { sendError, requireMethod, passThroughJson } from '../../_http.js'
 import { validateToken, validateId } from '../../_studentApi.js'
-import { GRADE_ORIGIN } from '../../_gradeFetch.js'
-
-setGlobalDispatcher(new Agent({ connect: { rejectUnauthorized: false } }))
-
-const TIMEOUT = 12_000
-
-async function upstreamFetch(path, queryEntries) {
-  const qs = new URLSearchParams()
-  for (const [key, value] of Object.entries(queryEntries)) {
-    if (value !== undefined && value !== null && value !== '') {
-      qs.set(key, String(value))
-    }
-  }
-  const url = `${GRADE_ORIGIN}${path}?${qs.toString()}`
-  const controller = new AbortController()
-  const t = setTimeout(() => controller.abort(), TIMEOUT)
-  try {
-    const res = await fetch(url, {
-      signal: controller.signal,
-      headers: { 'user-agent': 'grade-student-web/0.1' },
-    })
-    const text = await res.text()
-    return { res, text }
-  } finally {
-    clearTimeout(t)
-  }
-}
 
 export default async function handler(req, res) {
   if (!requireMethod(req, res, 'GET')) return
@@ -38,28 +11,55 @@ export default async function handler(req, res) {
   if (tokenErr) return sendError(res, 400, tokenErr)
 
   const id = req.query.id
-  const idErr = validateId(id)
-  if (idErr) return sendError(res, 400, idErr)
+  if (id) {
+    const idErr = validateId(id)
+    if (idErr) return sendError(res, 400, idErr)
+  }
 
   const recordbookID = req.query.recordbookID
-  const semesterID = req.query.semesterID
+  const semesterID = req.query.semesterID || req.query.SemesterID
 
-  const queryEntries = { token, recordbookID, semesterID }
-  const { res: upstream, text } = await upstreamFetch('/api/v0/events', queryEntries)
+  const queryEntries = { token }
+  if (id) queryEntries.id = id
+  if (recordbookID) queryEntries.recordbookID = recordbookID
+  if (semesterID) queryEntries.semesterID = semesterID
 
-  if (!upstream.ok) {
-    return sendError(res, upstream.status, 'Upstream returned an error', `HTTP ${upstream.status}: ${text.slice(0, 200)}`)
+  const qs = new URLSearchParams()
+  for (const [key, value] of Object.entries(queryEntries)) {
+    if (value !== undefined && value !== null && value !== '') {
+      qs.set(key, String(value))
+    }
   }
 
   try {
-    const parser = new XMLParser({
-      ignoreAttributes: false,
-      attributeNamePrefix: '@_',
-      isArray: (name) => name === 'event' || name === 'Event',
-    })
-    const json = parser.parse(text)
-    return res.status(200).json(json)
-  } catch (parseErr) {
-    return passThroughJson(res, upstream, text)
+    // Try gradeFetch with /api/v0/events
+    let { res: upstream, text } = await gradeFetch(`/../v0/events?${qs.toString()}`, { method: 'GET' })
+
+    if (!upstream.ok) {
+      // Fallback to /student/events
+      const retry = await gradeFetch(`/student/events?${qs.toString()}`, { method: 'GET' })
+      if (retry.res.ok) {
+        upstream = retry.res
+        text = retry.text
+      }
+    }
+
+    if (!upstream.ok) {
+      return sendError(res, upstream.status, 'Upstream returned an error', `HTTP ${upstream.status}: ${text.slice(0, 200)}`)
+    }
+
+    try {
+      const parser = new XMLParser({
+        ignoreAttributes: false,
+        attributeNamePrefix: '@_',
+        isArray: (name) => name === 'event' || name === 'Event',
+      })
+      const json = parser.parse(text)
+      return res.status(200).json(json)
+    } catch (parseErr) {
+      return passThroughJson(res, upstream, text)
+    }
+  } catch (err) {
+    return sendError(res, 502, 'Upstream request failed', err.message)
   }
 }

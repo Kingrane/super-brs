@@ -3,11 +3,13 @@
 ## Mission
 
 This repository is an API-first web client for SFEDU BRS (`grade.sfedu.ru`) with:
+
 - local runtime via Express (`server.js` + `public/*`)
 - deploy runtime via Vercel serverless handlers (`api/*`)
 - native Android app via React Native (`BRSApp/*`)
 
 Primary mission for any contributor/agent:
+
 1. Keep API behavior consistent across local and Vercel runtimes.
 2. Preserve upstream compatibility (proxy-style behavior, no lossy transformations).
 3. Keep the frontend resilient, responsive, and production-like.
@@ -28,10 +30,31 @@ api/
     discipline/
       journal.js               # GET /api/student/discipline/journal
       subject.js               # GET /api/student/discipline/subject
+      events.js                # GET /api/student/discipline/events
+
+index.html                     # Vite main HTML entry
+vite.config.js                 # Vite bundler & dev proxy config
+src/
+  main.jsx                     # React 18 root mount
+  App.jsx                      # Main app state & navigation router
+  api/client.js                # API fetch helpers (semesters, index, journal, subject, events)
+  utils/
+    formatters.js              # Grade calculations, teacher name formatting, events parser
+    storage.js                 # LocalStorage auth persistence wrapper
+  components/
+    StateLoading.jsx           # Loading skeleton
+    StateEmpty.jsx             # Empty state
+    StateError.jsx             # Error state with retry
+    DisciplineCard.jsx         # Discipline item in list
+    TeacherRow.jsx             # Teacher row
+    JournalTable.jsx           # Scrollable journal table
+    EventsTable.jsx            # Discipline event history table
+    ModuleCardList.jsx         # Module cards & total grade calculation
+  views/
+    LoginView.jsx              # Token auth screen
+    DashboardView.jsx          # Dashboard with 5 tabs (Grade, Journal, History, Modules, Teachers)
 
 public/
-  index.html                   # main UI (minimal React root)
-  app.js                       # React SPA (React 18 + htm, no build step)
   styles.css                   # visual system + responsive layout
   favicon.svg                  # app icon
 
@@ -94,12 +117,14 @@ Key invariant: `server.js` must call handlers from `api/*`, not duplicate endpoi
 Base docs: `https://grade.sfedu.ru/restapi/`
 
 Student-facing endpoints to support at minimum:
+
 - `GET /api/v1/student/semester_list`
 - `GET /api/v1/student`
 - `GET /api/v1/student/discipline/journal`
 - `GET /api/v1/student/discipline/subject`
 
 When adding new functionality, follow this policy:
+
 1. Add serverless handler in `api/student/**`.
 2. Reuse shared helpers (`_studentApi.js`, `_http.js`, `_gradeFetch.js`).
 3. Mount in `server.js` via `app.all` + adapter.
@@ -110,11 +135,13 @@ When adding new functionality, follow this policy:
 ## Backend Contract Rules
 
 ### Methods and Validation
+
 - Every handler must enforce method via `requireMethod(req, res, "GET")` (or needed method).
 - Required query params must be validated before upstream calls.
 - Token validation is intentionally tolerant (minimum length check) because token format may vary by environment.
 
 ### Error Response Format
+
 Always return:
 
 ```json
@@ -125,16 +152,19 @@ Always return:
 ```
 
 Status codes:
+
 - `400` invalid/missing request params
 - `405` method not allowed
 - `502` upstream timeout/network failure/transport issue
 
 ### Upstream Pass-through
+
 - Keep upstream status code.
 - Keep upstream body as-is.
 - Preserve upstream `content-type` when available.
 
 ### Network/Timeout Requirements
+
 - Use `AbortController` timeout in upstream requests.
 - Timeout stays at `12_000` ms unless explicitly changed.
 - Keep `user-agent` header in upstream requests.
@@ -144,23 +174,28 @@ Status codes:
 ## Frontend Product Rules
 
 ### UX States (Mandatory)
+
 Each async block must support:
+
 - loading skeleton
 - empty state
 - error state with retry action
 - success state
 
 ### Data Flow
+
 - Token/session state in memory + localStorage (web) / AsyncStorage (mobile) (`remember` mode).
 - Semesters and discipline index are loaded first.
 - Discipline details loaded per discipline.
 
 ### Rendering Requirements
+
 - Discipline list must be interactive and keyboard-safe.
 - Tabs must work without layout shift.
 - Debug panel should remain available for troubleshooting API response shapes.
 
 ### Language and Domain Copy
+
 - UI copy should be Russian-first.
 - Domain naming should prefer `БРС ЮФУ` over generic English labels.
 - Discipline types should be localized in UI:
@@ -171,6 +206,7 @@ Each async block must support:
   - `practice` -> `Практика`
 
 ### Grades/Progress Display Policy
+
 - Primary badge should show percentage where possible (`Rate / MaxCurrentRate`).
 - Keep color semantics consistent:
   - excellent / good / mid / bad / muted
@@ -181,16 +217,19 @@ Each async block must support:
 ## Visual System Rules
 
 Current visual direction:
+
 - warm academic paper aesthetic (brownish paper tones, serif display font)
 - dark ink + single accent (oxblood `#8A2417`)
 - compact, service-like density (no oversized decorative blocks)
 
 Do:
+
 - preserve clear hierarchy and spacing rhythm
 - keep responsive behavior stable (mobile first fallback)
 - maintain readable contrast and visible focus states
 
 Do not:
+
 - switch to random palette/theme each change
 - introduce visual noise that reduces clarity
 - break desktop/mobile parity of key actions
@@ -200,14 +239,17 @@ Do not:
 ## Runtime and Scripts
 
 ### Web
+
 - `npm start` -> `node server.js` (Express, port 3000)
 - `npm run dev` -> `node server.js`
 
 ### Mobile (BRSApp/)
+
 - `npx expo start` -> запуск Metro + QR код для Expo Go
 - `npx eas-cli@latest build --platform android --profile preview` -> сборка APK в облаке
 
 Notes:
+
 - В локальной разработке порты могут конфликтовать (`EADDRINUSE`); убить процесс или поставить `PORT`.
 - Vercel deploy использует `api/*` serverless handlers как источник API-поведения.
 - Mobile приложение стучится напрямую к `grade.sfedu.ru`, **Express не нужен**.
@@ -218,18 +260,21 @@ Notes:
 ## Quality Checklist Before Finishing Any Task
 
 Backend:
+
 - [ ] Handler exists in `api/*` and uses shared helpers.
 - [ ] `server.js` route is mounted for local runtime.
 - [ ] Method + params + error schema verified.
 - [ ] Upstream status/body/content-type passthrough preserved.
 
 Frontend:
+
 - [ ] Loading/empty/error/retry states present.
 - [ ] Mobile layout checked (`<=768px`) and desktop checked.
 - [ ] Russian copy and domain terms are consistent.
 - [ ] No console errors from changed logic.
 
 Project:
+
 - [ ] `node --check` passes for edited JS files.
 - [ ] `git status --short` reviewed for accidental artifacts.
 - [ ] AGENTS.md updated if architecture/contracts changed.
@@ -239,6 +284,7 @@ Project:
 ## Change Management Policy
 
 When updating this repo, avoid hidden drift:
+
 1. If endpoint contract changes, update `AGENTS.md` and frontend expectations.
 2. If UI behavior changes, ensure fallback for incomplete API response shape.
 3. If a new endpoint is added, wire it in both serverless and local Express path.
@@ -287,32 +333,32 @@ BRSApp/
 
 ### Key Technical Decisions
 
-| Area | Decision |
-|------|----------|
-| Framework | Expo SDK 56 + React Native |
-| Navigation | @react-navigation/native-stack (3 screens) |
-| Persistence | @react-native-async-storage/async-storage |
-| API target | `https://grade.sfedu.ru/api/v1/student` (direct, no backend) |
-| Design tokens | Ported from CSS variables → JS object |
-| State per screen | Each screen owns its data (no global store) |
-| Build | EAS Build (cloud), no Android Studio required |
+| Area             | Decision                                                     |
+| ---------------- | ------------------------------------------------------------ |
+| Framework        | Expo SDK 56 + React Native                                   |
+| Navigation       | @react-navigation/native-stack (3 screens)                   |
+| Persistence      | @react-native-async-storage/async-storage                    |
+| API target       | `https://grade.sfedu.ru/api/v1/student` (direct, no backend) |
+| Design tokens    | Ported from CSS variables → JS object                        |
+| State per screen | Each screen owns its data (no global store)                  |
+| Build            | EAS Build (cloud), no Android Studio required                |
 
 ### Что переписано из web-версии
 
-| Компонент | Web | Mobile |
-|-----------|-----|--------|
-| UI фреймворк | React 18 + htm | Expo SDK 56 |
-| Навигация | Browser routing (views) | React Navigation Stack |
-| Стилизация | CSS (styles.css, 3237 строк) | StyleSheet.create() |
-| Компоненты | div/span/button/table | View/Text/TouchableOpacity/FlatList/ScrollView |
-| Хранение | localStorage | AsyncStorage |
-| Тема | CSS custom properties | JS объект (theme/index.js) |
-| Семестры | select element | touchable chips |
-| Дисциплины | div list with counter | FlatList + DisciplineCard |
-| Журнал | HTML table | ScrollView horizontal |
-| Модули | article cards | View-based ModuleCard |
-| Преподаватели | div rows with avatar | View-based TeacherRow |
-| Backend | Express (proxy) | Не нужен |
+| Компонент     | Web                          | Mobile                                         |
+| ------------- | ---------------------------- | ---------------------------------------------- |
+| UI фреймворк  | React 18 + htm               | Expo SDK 56                                    |
+| Навигация     | Browser routing (views)      | React Navigation Stack                         |
+| Стилизация    | CSS (styles.css, 3237 строк) | StyleSheet.create()                            |
+| Компоненты    | div/span/button/table        | View/Text/TouchableOpacity/FlatList/ScrollView |
+| Хранение      | localStorage                 | AsyncStorage                                   |
+| Тема          | CSS custom properties        | JS объект (theme/index.js)                     |
+| Семестры      | select element               | touchable chips                                |
+| Дисциплины    | div list with counter        | FlatList + DisciplineCard                      |
+| Журнал        | HTML table                   | ScrollView horizontal                          |
+| Модули        | article cards                | View-based ModuleCard                          |
+| Преподаватели | div rows with avatar         | View-based TeacherRow                          |
+| Backend       | Express (proxy)              | Не нужен                                       |
 
 ### Available Scripts
 
@@ -346,3 +392,43 @@ npx eas-cli@latest build --platform android --profile preview
 
 App стучится напрямую к `https://grade.sfedu.ru/api/v1/student/`.
 Никакого backend запускать не нужно. Работает из коробки.
+Токен для тестов (мой личный) aa299bd59ad6e0e0e1bf564e346477592fee2e1e
+
+---
+
+## SSL Bypass для upstream (grade.sfedu.ru)
+
+### Что случилось
+
+У `grade.sfedu.ru` периодически слетает SSL-сертификат (оборванная цепочка →
+`UNABLE_TO_VERIFY_LEAF_SIGNATURE`). `curl` это прощает, а `fetch` в Node/Vercel/RN —
+нет, отсюда `fetch failed` и `502 Upstream request failed` во всём вебе.
+
+### Что сделано (только веб)
+
+- `api/_gradeFetch.js`: добавлен `undici` `Agent` с `connect: { rejectUnauthorized: false }`,
+  применяется точечно к запросам к `grade.sfedu.ru` через `setGlobalDispatcher`.
+  Остальные HTTPS-соединения не затрагиваются.
+- `api/student/discipline/events.js`: то же (ходит к `grade.sfedu.ru` напрямую, минуя `gradeFetch`).
+- `package.json`: добавлена зависимость `undici@^6`.
+- Производительность: `undici Agent` даёт пул keep-alive соединений — накладки нет,
+  скорее лёгкий плюс. Остальная логика/роуты/фронтенд не тронуты.
+
+### Как откатить (если cert починится или фикс не нужен)
+
+1. В `api/_gradeFetch.js` удалить строки:
+   ```js
+   import { Agent, setGlobalDispatcher } from "undici";
+   ...
+   setGlobalDispatcher(new Agent({ connect: { rejectUnauthorized: false } }));
+   ```
+2. В `api/student/discipline/events.js` удалить импорт `undici` и вызов `setGlobalDispatcher`.
+3. `npm uninstall undici`
+4. Задеплоить/пересобрать.
+
+Проверка, что фикс работает: локально `node server.js` + запрос
+`/api/student/semester_list?token=...` должен вернуть HTTP-ответ апстрима
+(например `403 Token is broken`), а не `502`.
+
+> Примечание: мобильное приложение (BRSApp) НЕ затронуто — оно ходит напрямую
+> и чинится отдельно (свой fetch/платформенный SSL).
