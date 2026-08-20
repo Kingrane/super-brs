@@ -36,6 +36,30 @@ export default function DashboardView({
     handleRefresh,
     handleLogout
 }) {
+    const [mobileView, setMobileView] = React.useState("list")
+
+    React.useEffect(() => {
+        setMobileView("list")
+    }, [currentSemesterID, mainNav])
+
+    React.useEffect(() => {
+        if (!selectedDisciplineID) {
+            setMobileView("list")
+        }
+    }, [selectedDisciplineID])
+
+    const handleDisciplineClick = (id) => {
+        selectDiscipline(id)
+        setMobileView("detail")
+        if (typeof window !== "undefined" && window.innerWidth <= 768) {
+            window.scrollTo({ top: 0, behavior: "smooth" })
+        }
+    }
+
+    const handleBackToList = () => {
+        setMobileView("list")
+    }
+
     const selectedMark = selectedDiscipline
         ? marks[String(selectedDiscipline.ID)] || marks[selectedDiscipline.ID] || ""
         : ""
@@ -65,7 +89,7 @@ export default function DashboardView({
                     active={isActive}
                     index={index}
                     teachersMap={teachersMap}
-                    onClick={() => selectDiscipline(id)}
+                    onClick={() => handleDisciplineClick(id)}
                 />
             )
         })
@@ -205,14 +229,20 @@ export default function DashboardView({
                     <button
                         type="button"
                         className={`btn ${mainNav === "disciplines" ? "btn-primary" : "btn-ghost"}`}
-                        onClick={() => setMainNav("disciplines")}
+                        onClick={() => {
+                            setMainNav("disciplines")
+                            setMobileView("list")
+                        }}
                     >
                         Дисциплины
                     </button>
                     <button
                         type="button"
                         className={`btn ${mainNav === "events" ? "btn-primary" : "btn-ghost"}`}
-                        onClick={() => setMainNav("events")}
+                        onClick={() => {
+                            setMainNav("events")
+                            setMobileView("list")
+                        }}
                     >
                         История событий
                     </button>
@@ -242,7 +272,7 @@ export default function DashboardView({
             </section>
 
             {mainNav === "disciplines" ? (
-                <main className="dashboard-grid">
+                <main className={`dashboard-grid ${mobileView === "detail" ? "mobile-view-detail" : "mobile-view-list"}`}>
                     <section className="card panel-list">
                         <div className="panel-head">
                             <h3>Список дисциплин</h3>
@@ -253,8 +283,19 @@ export default function DashboardView({
 
                     <section className="detail-column">
                         <article className="card panel-detail">
-                            <div className="panel-head">
-                                <h3>{selectedDiscipline?.SubjectName || "Детали дисциплины"}</h3>
+                            <div className="panel-head panel-head-detail">
+                                <div className="panel-head-title-wrap">
+                                    <button
+                                        type="button"
+                                        className="mobile-back-btn"
+                                        onClick={handleBackToList}
+                                        aria-label="Назад к списку дисциплин"
+                                    >
+                                        <span className="mobile-back-icon" aria-hidden="true">←</span>
+                                        <span>К списку</span>
+                                    </button>
+                                    <h3 title={selectedDiscipline?.SubjectName}>{selectedDiscipline?.SubjectName || "Детали дисциплины"}</h3>
+                                </div>
                                 <span className="pill">{selectedGrade.text || "-"}</span>
                             </div>
 
