@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { colors, fonts } from '../theme'
 import { fetchSemesters, fetchIndex, fetchEvents } from '../api/client'
 import { formatSemesterLabel } from '../utils/helpers'
+import { getDashboardCache, setDashboardCache } from '../utils/cache'
 import DisciplineCard from '../components/DisciplineCard'
 import EventCard from '../components/EventCard'
 import SemesterPicker from '../components/SemesterPicker'
@@ -32,7 +33,21 @@ export default function DashboardScreen({ route, navigation }) {
   const [globalEvents, setGlobalEvents] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [offline, setOffline] = useState(false)
+  const [lastUpdated, setLastUpdated] = useState('')
   const [confirmLogoutOpen, setConfirmLogoutOpen] = useState(false)
+
+  const applyCache = (cached) => {
+    setSemesters(Array.isArray(cached.semesters) ? cached.semesters : [])
+    setDisciplines(Array.isArray(cached.disciplines) ? cached.disciplines : [])
+    setMarks(cached.marks || {})
+    setTeachersMap(cached.teachersMap || {})
+    setRecordbookID(cached.recordbookID || '')
+    setGlobalEvents(Array.isArray(cached.globalEvents) ? cached.globalEvents : [])
+    setLastUpdated(cached.savedAt || '')
+  }
+
+  const isNetworkError = (err) => !/^HTTP \d{3}/i.test(String(err?.message || ''))
 
   const loadAll = useCallback(async (semesterID) => {
     if (!semesterID) return
@@ -47,25 +62,51 @@ export default function DashboardScreen({ route, navigation }) {
       const semResponse = semJson?.response || {}
       const list = Array.isArray(semResponse) ? semResponse : Object.values(semResponse)
       list.sort((a, b) => Number(b.ID || 0) - Number(a.ID || 0))
-      setSemesters(list)
 
       const idxResponse = idxJson?.response || {}
       const nextDisciplines = Array.isArray(idxResponse.Disciplines) ? idxResponse.Disciplines : []
       const rId = idxResponse.RecordbookID || idxResponse.RecordBook || idxResponse.Student?.RecordbookID || idxResponse.Student?.RecordBook || idxResponse.Student?.ID || ''
-      
+
+      setSemesters(list)
       setDisciplines(nextDisciplines)
       setMarks(idxResponse.Marks || {})
       setTeachersMap(idxResponse.Teachers || {})
       setRecordbookID(String(rId))
+      setOffline(false)
 
-      // Load global events for the semester
+      let nextEvents = []
       try {
         const eventsList = await fetchEvents(token, String(rId), semesterID)
-        setGlobalEvents(Array.isArray(eventsList) ? eventsList : [])
+        nextEvents = Array.isArray(eventsList) ? eventsList : []
+        setGlobalEvents(nextEvents)
       } catch {
-        setGlobalEvents([])
+        const cached = await getDashboardCache(token, semesterID)
+        nextEvents = Array.isArray(cached?.globalEvents) ? cached.globalEvents : []
+        setGlobalEvents(nextEvents)
       }
+
+      const savedAt = new Date().toISOString()
+      setLastUpdated(savedAt)
+      await setDashboardCache(token, semesterID, {
+        semesters: list,
+        disciplines: nextDisciplines,
+        marks: idxResponse.Marks || {},
+        teachersMap: idxResponse.Teachers || {},
+        recordbookID: String(rId),
+        globalEvents: nextEvents,
+        savedAt,
+      })
     } catch (err) {
+      if (isNetworkError(err)) {
+        const cached = await getDashboardCache(token, semesterID)
+        if (cached) {
+          applyCache(cached)
+          setOffline(true)
+          setError('')
+          return
+        }
+      }
+      setOffline(false)
       setError(err.message)
     } finally {
       setLoading(false)
@@ -75,6 +116,13 @@ export default function DashboardScreen({ route, navigation }) {
   useEffect(() => {
     loadAll(currentSemesterID)
   }, [currentSemesterID, loadAll])
+
+  const formatCacheDate = (value) => {
+    if (!value) return ''
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return ''
+    return date.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+  }
 
   const handleSemesterPress = (id) => {
     setCurrentSemesterID(id)
@@ -94,8 +142,12 @@ export default function DashboardScreen({ route, navigation }) {
 
   const confirmLogout = () => {
     setConfirmLogoutOpen(false)
-    navigation.reset({ index: 0, routes: [{ name: 'Login' }] })
+    navigation.reset({ index: 0, routes: [{ name: 'Login', params: { skipAutoLogin: true } }] })
   }
+
+  const renderFooter = () => (
+    <Text style={styles.footer}>romka навайбкодил</Text>
+  )
 
   const renderLogoutModal = () => (
     <Modal
@@ -163,6 +215,13 @@ export default function DashboardScreen({ route, navigation }) {
         onSelect={handleSemesterPress}
       />
 
+      {offline ? (
+        <View style={styles.offlineBanner}>
+          <Text style={styles.offlineTitle}>Нет соединения</Text>
+          <Text style={styles.offlineText}>Показаны последние сохранённые данные{lastUpdated ? ` · ${formatCacheDate(lastUpdated)}` : ''}</Text>
+        </View>
+      ) : null}
+
       <View style={styles.listHeader}>
         <Text style={styles.listTitle}>
           {mainNav === 'disciplines' ? 'Список дисциплин' : 'История событий'}
@@ -181,6 +240,7 @@ export default function DashboardScreen({ route, navigation }) {
         {renderHeader()}
         {renderLogoutModal()}
         <StateLoading />
+        {renderFooter()}
       </View>
     )
   }
@@ -196,6 +256,7 @@ export default function DashboardScreen({ route, navigation }) {
           details={error}
           onRetry={handleRefresh}
         />
+        {renderFooter()}
       </View>
     )
   }
@@ -209,6 +270,7 @@ export default function DashboardScreen({ route, navigation }) {
           data={disciplines}
           keyExtractor={(item) => String(item.ID)}
           ListHeaderComponent={renderHeader}
+          ListFooterComponent={renderFooter}
           ListEmptyComponent={
             <StateEmpty title="Нет дисциплин" description="В выбранном семестре не найдено дисциплин." />
           }
@@ -227,6 +289,7 @@ export default function DashboardScreen({ route, navigation }) {
           data={globalEvents}
           keyExtractor={(item, index) => item.id || String(index)}
           ListHeaderComponent={renderHeader}
+          ListFooterComponent={renderFooter}
           ListEmptyComponent={
             <StateEmpty title="История пуста" description="Записей в истории событий не найдено." />
           }
@@ -246,8 +309,35 @@ const styles = StyleSheet.create({
   headerContainer: {
     paddingHorizontal: 16,
   },
+  offlineBanner: {
+    marginBottom: 14,
+    padding: 10,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.accent,
+    backgroundColor: colors.accentSoft,
+  },
+  offlineTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.accent,
+  },
+  offlineText: {
+    marginTop: 3,
+    fontSize: 12,
+    lineHeight: 17,
+    color: colors.inkSoft,
+  },
   listContent: {
     paddingBottom: 32,
+  },
+  footer: {
+    marginTop: 8,
+    marginBottom: 12,
+    fontSize: 10,
+    color: colors.inkFaint,
+    textAlign: 'center',
+    fontFamily: fonts.mono,
+    letterSpacing: 1.5,
   },
   topbar: {
     flexDirection: 'row',

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import {
   View,
   Text,
+  Image,
   useWindowDimensions,
   TextInput,
   TouchableOpacity,
@@ -19,7 +20,7 @@ import { isLikelyToken } from '../utils/helpers'
 import { setStoredAuth, getStoredAuth, getLastToken } from '../utils/storage'
 import { fetchSemesters, fetchIndex } from '../api/client'
 
-export default function LoginScreen({ navigation }) {
+export default function LoginScreen({ navigation, route }) {
   const [tokenInput, setTokenInput] = useState('')
   const [remember, setRemember] = useState(false)
   const [status, setStatus] = useState({ message: '', type: '' })
@@ -72,17 +73,25 @@ export default function LoginScreen({ navigation }) {
       const stored = await getStoredAuth()
       const tokenToShow = stored.token || await getLastToken()
       if (tokenToShow) setTokenInput(tokenToShow)
-      if (stored.remember && stored.token) {
+      setRemember(stored.remember)
+      if (stored.remember && stored.token && !route.params?.skipAutoLogin) {
         setRemember(true)
         setStatus({ message: 'Выполняется автоматический вход...', type: '' })
         await handleLogin(stored.token, true, true)
       }
       setAuthReady(true)
     })()
-  }, [])
+  }, [route.params?.skipAutoLogin])
 
   if (!authReady) {
-    return <View style={styles.root} />
+    return (
+      <View style={styles.startupLoader}>
+        <Image source={require('../../assets/icon.png')} style={styles.startupLogo} />
+        <ActivityIndicator color={colors.accent} size="small" />
+        <Text style={styles.startupText}>Выполняется вход...</Text>
+        <Text style={styles.startupHint}>Проверяем сохранённый токен</Text>
+      </View>
+    )
   }
 
   return (
@@ -112,7 +121,7 @@ export default function LoginScreen({ navigation }) {
               autoCorrect={false}
               value={tokenInput}
               onChangeText={setTokenInput}
-              onSubmitEditing={handleLogin}
+              onSubmitEditing={() => handleLogin()}
               returnKeyType="go"
             />
 
@@ -130,7 +139,7 @@ export default function LoginScreen({ navigation }) {
 
             <TouchableOpacity
               style={[styles.loginBtn, loading && styles.loginBtnDisabled]}
-              onPress={handleLogin}
+              onPress={() => handleLogin()}
               disabled={loading}>
               {loading ? (
                 <ActivityIndicator color={colors.paper} size="small" />
@@ -166,6 +175,30 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: colors.paper,
+  },
+  startupLoader: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+    backgroundColor: colors.paper,
+  },
+  startupLogo: {
+    width: 58,
+    height: 58,
+    marginBottom: 18,
+    opacity: 0.72,
+  },
+  startupText: {
+    marginTop: 12,
+    fontSize: 15,
+    fontFamily: fonts.display,
+    color: colors.ink2,
+  },
+  startupHint: {
+    marginTop: 5,
+    fontSize: 11,
+    color: colors.inkMute,
   },
   scroll: {
     flexGrow: 1,

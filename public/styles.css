@@ -8,45 +8,40 @@
 
    ============================================================= */
 
-
 @import url("https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT,WONK@0,9..144,400..700,0..100,0..1;1,9..144,400..700,0..100,0..1&family=Inter+Tight:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap");
-
 
 /* ---------- Tokens ---------- */
 
 :root {
-
     /* Ink */
 
-    --ink: #0E141C;
+    --ink: #0e141c;
 
-    --ink-2: #232A33;
+    --ink-2: #232a33;
 
-    --ink-soft: #4D555F;
+    --ink-soft: #4d555f;
 
-    --ink-mute: #7C848E;
+    --ink-mute: #7c848e;
 
-    --ink-faint: #A8AEB6;
-
+    --ink-faint: #a8aeb6;
 
     /* Paper */
 
-    --paper: #F0EBDC;
+    --paper: #f0ebdc;
 
-    --paper-2: #E8E2CD;
+    --paper-2: #e8e2cd;
 
-    --paper-warm: #ECE5CF;
+    --paper-warm: #ece5cf;
 
-    --paper-edge: #D9D2BB;
+    --paper-edge: #d9d2bb;
 
-    --surface: #F8F4E5;
+    --surface: #f8f4e5;
 
-    --surface-2: #F2EDDC;
-
+    --surface-2: #f2eddc;
 
     /* Rules */
 
-    --rule: rgba(14, 20, 28, 0.10);
+    --rule: rgba(14, 20, 28, 0.1);
 
     --rule-2: rgba(14, 20, 28, 0.18);
 
@@ -54,38 +49,35 @@
 
     --rule-paper: rgba(14, 20, 28, 0.04);
 
-
     /* Accent — oxblood, used sparingly */
 
-    --accent: #8A2417;
+    --accent: #8a2417;
 
-    --accent-soft: rgba(138, 36, 23, 0.10);
+    --accent-soft: rgba(138, 36, 23, 0.1);
 
-    --accent-line: rgba(138, 36, 23, 0.40);
-
+    --accent-line: rgba(138, 36, 23, 0.4);
 
     /* Grade palette (muted, no neon) */
 
-    --g-excellent: #2A4F35;
+    --g-excellent: #2a4f35;
 
-    --g-excellent-bg: rgba(42, 79, 53, 0.10);
+    --g-excellent-bg: rgba(42, 79, 53, 0.1);
 
-    --g-good: #5B6A2A;
+    --g-good: #5b6a2a;
 
-    --g-good-bg: rgba(91, 106, 42, 0.10);
+    --g-good-bg: rgba(91, 106, 42, 0.1);
 
-    --g-mid: #8A6519;
+    --g-mid: #8a6519;
 
-    --g-mid-bg: rgba(138, 101, 25, 0.10);
+    --g-mid-bg: rgba(138, 101, 25, 0.1);
 
-    --g-bad: #8A2417;
+    --g-bad: #8a2417;
 
-    --g-bad-bg: rgba(138, 36, 23, 0.10);
+    --g-bad-bg: rgba(138, 36, 23, 0.1);
 
-    --g-mute: #5B636E;
+    --g-mute: #5b636e;
 
     --g-mute-bg: rgba(91, 99, 110, 0.08);
-
 
     /* Type */
 
@@ -94,7 +86,6 @@
     --font-ui: "Inter Tight", "Inter", system-ui, -apple-system, sans-serif;
 
     --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
-
 
     /* Geometry — barely rounded */
 
@@ -107,7 +98,6 @@
     --r-4: 6px;
 
     --r-pill: 999px;
-
 
     /* Motion */
 
@@ -123,16 +113,12 @@
 
     --dur-4: 600ms;
 
-
     /* Focus */
 
     --ring: 0 0 0 1px var(--paper), 0 0 0 3px var(--accent);
 
-
     color-scheme: light;
-
 }
-
 
 /* ---------- Reset ---------- */
 
@@ -177,11 +163,10 @@ html {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background-color: #6A1A10;
+    background-color: #6a1a10;
 }
 
 body {
-
     font-family: var(--font-ui);
 
     color: var(--ink);
@@ -195,28 +180,24 @@ body {
     background-image:
 
         /* very faint topographic contour lines, fixed */
-
         url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='600' viewBox='0 0 600 600' fill='none' stroke='%230E141C' stroke-opacity='0.035' stroke-width='1'><path d='M-40 100 Q 130 40 280 130 T 640 90'/><path d='M-40 200 Q 150 150 290 220 T 640 190'/><path d='M-40 300 Q 170 250 310 320 T 640 290'/><path d='M-40 400 Q 190 350 330 420 T 640 390'/><path d='M-40 500 Q 210 450 350 520 T 640 490'/><path d='M-40 600 Q 230 550 370 620 T 640 590'/><path d='M-40 0 Q 110 -50 260 30 T 640 -10'/><path d='M-40 700 Q 250 650 390 720 T 640 690'/><circle cx='460' cy='200' r='50'/><circle cx='460' cy='200' r='100'/><circle cx='460' cy='200' r='160'/><circle cx='140' cy='460' r='40'/><circle cx='140' cy='460' r='90'/><circle cx='140' cy='460' r='150'/></svg>"),
-
         /* paper grain */
-
         url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.06 0 0 0 0 0.08 0 0 0 0 0.11 0 0 0 0.05 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
 
-    background-size: 600px 600px, 220px 220px;
+    background-size:
+        600px 600px,
+        220px 220px;
 
     background-attachment: fixed;
 
     -webkit-font-smoothing: antialiased;
 
     -moz-osx-font-smoothing: grayscale;
-
 }
-
 
 /* subtle coordinate grid in upper-right (atlas feel) */
 
 body::before {
-
     content: "";
 
     position: fixed;
@@ -228,9 +209,7 @@ body::before {
     z-index: 0;
 
     background-image:
-
         linear-gradient(90deg, rgba(14, 20, 28, 0.05) 1px, transparent 1px),
-
         linear-gradient(180deg, rgba(14, 20, 28, 0.05) 1px, transparent 1px);
 
     background-size: 64px 64px;
@@ -239,17 +218,19 @@ body::before {
 
     mask-image: linear-gradient(225deg, black 0%, black 6%, transparent 22%);
 
-    -webkit-mask-image: linear-gradient(225deg, black 0%, black 6%, transparent 22%);
+    -webkit-mask-image: linear-gradient(
+        225deg,
+        black 0%,
+        black 6%,
+        transparent 22%
+    );
 
     opacity: 0.6;
-
 }
-
 
 /* tiny margin ticks (top + left) */
 
 body::after {
-
     content: "";
 
     position: fixed;
@@ -269,20 +250,15 @@ body::after {
     border-top: 1px solid var(--rule-2);
 
     border-left: 1px solid var(--rule-2);
-
 }
-
 
 /* ---------- Selection / scrollbar / focus ---------- */
 
 ::selection {
-
     background: var(--accent);
 
     color: var(--paper);
-
 }
-
 
 ::-webkit-scrollbar {
     width: 10px;
@@ -294,13 +270,11 @@ body::after {
 }
 
 ::-webkit-scrollbar-thumb {
-
     background: rgba(14, 20, 28, 0.18);
 
     border-radius: 0;
 
     transition: background var(--dur-2) var(--ease);
-
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -312,22 +286,17 @@ body::after {
     scrollbar-width: thin;
 }
 
-
 :focus-visible {
-
     outline: none;
 
     box-shadow: var(--ring);
 
     border-radius: 2px;
-
 }
-
 
 /* ---------- Layout primitives ---------- */
 
 .app-shell {
-
     position: relative;
 
     z-index: 1;
@@ -335,12 +304,9 @@ body::after {
     width: min(1440px, 100% - 4rem);
 
     margin: 2.4rem auto 3rem;
-
 }
 
-
 @media (max-width: 768px) {
-
     .app-shell {
         width: calc(100% - 1.6rem);
         margin: 1.2rem auto 2rem;
@@ -355,12 +321,9 @@ body::after {
         mask-size: 64px 64px;
         -webkit-mask-size: 64px 64px;
     }
-
 }
 
-
 .card {
-
     background: var(--surface);
 
     border: 1px solid var(--rule);
@@ -370,14 +333,11 @@ body::after {
     box-shadow: none;
 
     position: relative;
-
 }
-
 
 /* corner stamp on every card */
 
 .card::after {
-
     content: "";
 
     position: absolute;
@@ -393,24 +353,19 @@ body::after {
     border-right: 1px solid var(--rule-2);
 
     pointer-events: none;
-
 }
-
 
 .view {
     display: none;
 }
 
 .view-active {
-
     display: block;
 
     animation: view-in 480ms var(--ease);
-
 }
 
 @keyframes view-in {
-
     from {
         opacity: 0;
         transform: translateY(6px);
@@ -420,14 +375,11 @@ body::after {
         opacity: 1;
         transform: translateY(0);
     }
-
 }
-
 
 /* ---------- Typography utilities ---------- */
 
 .kicker {
-
     margin: 0;
 
     font-family: var(--font-ui);
@@ -447,11 +399,9 @@ body::after {
     align-items: center;
 
     gap: 0.6rem;
-
 }
 
 .kicker::before {
-
     content: "§";
 
     font-family: var(--font-display);
@@ -467,12 +417,9 @@ body::after {
     font-weight: 500;
 
     text-transform: none;
-
 }
 
-
 .lead {
-
     color: var(--ink-soft);
 
     margin: 0;
@@ -484,12 +431,9 @@ body::after {
     line-height: 1.6;
 
     font-weight: 400;
-
 }
 
-
 .link-inline {
-
     color: var(--ink);
 
     text-decoration: none;
@@ -506,31 +450,29 @@ body::after {
 
     padding-bottom: 1px;
 
-    transition: color var(--dur-2) var(--ease), background-size var(--dur-3) var(--ease);
-
+    transition:
+        color var(--dur-2) var(--ease),
+        background-size var(--dur-3) var(--ease);
 }
 
 .link-inline:hover {
-
     color: var(--accent);
 
     background-size: 100% 2px;
 
     background-position: 0 90%;
-
 }
-
 
 .mono {
     font-family: var(--font-mono);
-    font-feature-settings: "tnum" 1, "ss02" 1;
+    font-feature-settings:
+        "tnum" 1,
+        "ss02" 1;
 }
-
 
 /* small caps label, like running header */
 
 .running {
-
     font-family: var(--font-ui);
 
     font-size: 0.66rem;
@@ -544,7 +486,6 @@ body::after {
     font-weight: 600;
 
     font-feature-settings: "tnum" 1;
-
 }
 
 .running .sep {
@@ -552,11 +493,9 @@ body::after {
     margin: 0 0.4rem;
 }
 
-
 /* footnote-style numeral, used in topbar */
 
 .numeral {
-
     font-family: var(--font-display);
 
     font-style: italic;
@@ -567,15 +506,14 @@ body::after {
 
     color: var(--accent);
 
-    font-feature-settings: "tnum" 1, "lnum" 0;
-
+    font-feature-settings:
+        "tnum" 1,
+        "lnum" 0;
 }
-
 
 /* ---------- Auth view ---------- */
 
 .auth-layout {
-
     min-height: min(100dvh - 4rem, 880px);
 
     display: grid;
@@ -591,14 +529,10 @@ body::after {
     background: var(--surface);
 
     position: relative;
-
 }
 
-
 @media (max-width: 880px) {
-
     .auth-layout {
-
         grid-template-columns: 1fr;
 
         min-height: auto;
@@ -606,16 +540,12 @@ body::after {
         border: none;
 
         background: transparent;
-
     }
-
 }
-
 
 /* auth left side — typographic */
 
 .auth-aside {
-
     padding: 3.5rem 3rem 3rem;
 
     display: flex;
@@ -629,12 +559,9 @@ body::after {
     background: var(--paper);
 
     position: relative;
-
 }
 
-
 .auth-aside::before {
-
     content: "";
 
     position: absolute;
@@ -648,23 +575,17 @@ body::after {
     border-top: 1px solid var(--rule-2);
 
     border-right: 1px solid var(--rule-2);
-
 }
 
-
 .auth-aside .top {
-
     display: flex;
 
     flex-direction: column;
 
     gap: 1.6rem;
-
 }
 
-
 .auth-aside h1 {
-
     margin: 0;
 
     font-family: var(--font-display);
@@ -681,33 +602,29 @@ body::after {
 
     text-wrap: balance;
 
-    font-variation-settings: "opsz" 144, "SOFT" 30, "WONK" 1;
-
+    font-variation-settings:
+        "opsz" 144,
+        "SOFT" 30,
+        "WONK" 1;
 }
 
 .auth-aside h1 em {
-
     font-style: italic;
 
     color: var(--accent);
 
     font-weight: 400;
-
 }
 
 .auth-aside h1 .ampersand {
-
     font-style: italic;
 
     color: var(--ink-soft);
 
     font-weight: 300;
-
 }
 
-
 .auth-aside .lead {
-
     font-family: var(--font-display);
 
     font-style: italic;
@@ -720,24 +637,20 @@ body::after {
 
     max-width: 40ch;
 
-    font-variation-settings: "opsz" 14, "SOFT" 50;
-
+    font-variation-settings:
+        "opsz" 14,
+        "SOFT" 50;
 }
 
-
 .auth-aside .bottom {
-
     display: flex;
 
     flex-direction: column;
 
     gap: 1.2rem;
-
 }
 
-
 .auth-aside .meta {
-
     display: flex;
 
     align-items: baseline;
@@ -755,7 +668,6 @@ body::after {
     border-top: 1px solid var(--rule);
 
     padding-top: 0.8rem;
-
 }
 
 .auth-aside .meta .key {
@@ -766,26 +678,21 @@ body::after {
     color: var(--ink);
 }
 
-
 .auth-aside .meta .row {
-
     display: flex;
 
     align-items: baseline;
 
     gap: 0.5rem;
-
 }
 
-.auth-aside .meta .row+.row {
+.auth-aside .meta .row + .row {
     margin-top: 0.32rem;
 }
-
 
 /* auth right side — form */
 
 .auth-card {
-
     padding: 3.5rem 3rem 3rem;
 
     display: flex;
@@ -799,32 +706,42 @@ body::after {
     position: relative;
 
     background: var(--surface);
-
 }
 
-
 @media (max-width: 880px) {
-
     .auth-aside,
     .auth-card {
-
         padding: 2.2rem 1.4rem;
 
         border-right: none;
 
         background: var(--surface);
-
     }
 
     .auth-aside {
+        justify-content: flex-start;
+        gap: 0.85rem;
         border-bottom: 1px solid var(--rule);
     }
 
+    .auth-aside h1 {
+        margin: 0.1rem 0 0.25rem;
+    }
+
+    .auth-aside .lead {
+        margin: 0;
+    }
+
+    .auth-aside .link-inline {
+        margin-top: 0.2rem;
+    }
+
+    .auth-card {
+        gap: 1.25rem;
+    }
 }
 
-
 .auth-card-head {
-
     display: flex;
 
     justify-content: space-between;
@@ -834,11 +751,9 @@ body::after {
     padding-bottom: 1rem;
 
     border-bottom: 1px solid var(--rule);
-
 }
 
 .auth-card-head h2 {
-
     margin: 0;
 
     font-family: var(--font-display);
@@ -852,17 +767,13 @@ body::after {
     color: var(--ink);
 
     letter-spacing: -0.015em;
-
 }
 
 .auth-card-head h2::first-letter {
-
     color: var(--accent);
-
 }
 
 .auth-card-head .id {
-
     font-family: var(--font-mono);
 
     font-size: 0.7rem;
@@ -870,31 +781,23 @@ body::after {
     color: var(--ink-mute);
 
     letter-spacing: 0.1em;
-
 }
 
-
 .auth-card .field-list {
-
     display: grid;
 
     gap: 1.1rem;
-
 }
-
 
 /* ---------- Form fields ---------- */
 
 .field {
-
     display: grid;
 
     gap: 0.5rem;
-
 }
 
-.field>span {
-
+.field > span {
     font-family: var(--font-ui);
 
     font-size: 0.7rem;
@@ -912,11 +815,9 @@ body::after {
     align-items: center;
 
     gap: 0.5rem;
-
 }
 
-.field>span .num {
-
+.field > span .num {
     font-family: var(--font-display);
 
     font-style: italic;
@@ -930,22 +831,17 @@ body::after {
     letter-spacing: 0;
 
     text-transform: none;
-
 }
 
 .field-inline {
-
     grid-template-columns: minmax(120px, 180px) 1fr;
 
     align-items: center;
 
     gap: 1rem;
-
 }
 
-
 .input {
-
     width: 100%;
 
     border: none;
@@ -964,26 +860,25 @@ body::after {
 
     padding: 0.6rem 0;
 
-    transition: border-color var(--dur-2) var(--ease),
-
+    transition:
+        border-color var(--dur-2) var(--ease),
         color var(--dur-2) var(--ease);
 
     font-feature-settings: "tnum" 1;
-
 }
 
 .input::placeholder {
-
     color: var(--ink-faint);
 
     font-style: italic;
 
     font-family: var(--font-display);
 
-    font-variation-settings: "opsz" 14, "SOFT" 50;
+    font-variation-settings:
+        "opsz" 14,
+        "SOFT" 50;
 
     font-size: 0.95rem;
-
 }
 
 .input:hover {
@@ -991,21 +886,16 @@ body::after {
 }
 
 .input:focus {
-
     outline: none;
 
     border-bottom-color: var(--accent);
-
 }
 
 .input[aria-invalid="true"] {
-
     border-bottom-color: var(--accent);
 
     color: var(--accent);
-
 }
-
 
 .select {
     appearance: none;
@@ -1024,12 +914,14 @@ body::after {
     font-weight: 500;
     color: var(--ink);
     cursor: pointer;
-    transition: border-color var(--dur-2) var(--ease), background-color var(--dur-2) var(--ease);
+    transition:
+        border-color var(--dur-2) var(--ease),
+        background-color var(--dur-2) var(--ease);
 }
 
 .select:hover {
     border-color: var(--accent);
-    background-color: #FAF7F2;
+    background-color: #faf7f2;
 }
 
 .select:focus {
@@ -1043,15 +935,12 @@ body::after {
     padding: 0.6rem;
 }
 
-
 textarea.input {
     resize: vertical;
     min-height: 5rem;
 }
 
-
 .auth-actions-row {
-
     display: flex;
 
     justify-content: space-between;
@@ -1061,12 +950,9 @@ textarea.input {
     align-items: center;
 
     margin-top: 0.4rem;
-
 }
 
-
 .check {
-
     display: inline-flex;
 
     align-items: center;
@@ -1084,7 +970,6 @@ textarea.input {
     padding: 0.2rem 0;
 
     transition: color var(--dur-2) var(--ease);
-
 }
 
 .check:hover {
@@ -1092,7 +977,6 @@ textarea.input {
 }
 
 .check input {
-
     appearance: none;
 
     width: 14px;
@@ -1112,10 +996,11 @@ textarea.input {
 
     cursor: pointer;
 
-    transition: background var(--dur-2) var(--ease), border-color var(--dur-2) var(--ease);
+    transition:
+        background var(--dur-2) var(--ease),
+        border-color var(--dur-2) var(--ease);
 
     flex-shrink: 0;
-
 }
 
 .check input:hover {
@@ -1123,7 +1008,6 @@ textarea.input {
 }
 
 .check input:checked {
-
     background: var(--accent);
 
     border-color: var(--accent);
@@ -1135,12 +1019,9 @@ textarea.input {
     background-position: center;
 
     background-repeat: no-repeat;
-
 }
 
-
 .auth-buttons {
-
     display: flex;
 
     flex-direction: column;
@@ -1148,14 +1029,11 @@ textarea.input {
     gap: 0.6rem;
 
     margin-top: 0.4rem;
-
 }
-
 
 /* ---------- Buttons ---------- */
 
 .btn {
-
     --btn-fg: var(--ink);
 
     --btn-bg: transparent;
@@ -1194,12 +1072,10 @@ textarea.input {
 
     text-decoration: none;
 
-    transition: color var(--dur-2) var(--ease),
-
+    transition:
+        color var(--dur-2) var(--ease),
         background var(--dur-2) var(--ease),
-
         border-color var(--dur-2) var(--ease),
-
         transform var(--dur-2) var(--ease);
 
     white-space: nowrap;
@@ -1209,11 +1085,9 @@ textarea.input {
     text-transform: uppercase;
 
     font-feature-settings: "tnum" 1;
-
 }
 
 .btn::before {
-
     content: "";
 
     position: absolute;
@@ -1227,7 +1101,6 @@ textarea.input {
     background: var(--accent);
 
     transition: width var(--dur-3) var(--ease);
-
 }
 
 .btn:hover {
@@ -1242,36 +1115,27 @@ textarea.input {
     background-color: var(--accent);
 }
 
-
 .btn-ghost {
-
     --btn-bg: transparent;
 
     --btn-fg: var(--ink);
 
     --btn-border: var(--rule-2);
-
 }
 
-
 .btn-danger {
-
     --btn-bg: transparent;
 
     --btn-fg: var(--ink);
 
     --btn-border: var(--rule-2);
-
 }
 
 .btn-danger:hover {
-
     --btn-fg: var(--accent);
 
     --btn-border: var(--accent);
-
 }
-
 
 .btn-sm {
     padding: 0.5rem 0.85rem;
@@ -1285,11 +1149,9 @@ textarea.input {
     letter-spacing: 0.06em;
 }
 
-
 /* ---------- Status / banners ---------- */
 
 .status {
-
     margin: 0;
 
     min-height: 1.2rem;
@@ -1302,14 +1164,17 @@ textarea.input {
 
     font-family: var(--font-display);
 
-    font-variation-settings: "opsz" 14, "SOFT" 50;
+    font-variation-settings:
+        "opsz" 14,
+        "SOFT" 50;
 
     opacity: 0;
 
     transform: translateY(-2px);
 
-    transition: opacity var(--dur-2) var(--ease), transform var(--dur-2) var(--ease);
-
+    transition:
+        opacity var(--dur-2) var(--ease),
+        transform var(--dur-2) var(--ease);
 }
 
 .status-visible {
@@ -1322,7 +1187,6 @@ textarea.input {
 }
 
 .footer-credit {
-
     margin-top: 2rem;
 
     font-size: 0.6rem;
@@ -1334,12 +1198,9 @@ textarea.input {
     text-align: center;
 
     letter-spacing: 1.5px;
-
 }
 
-
 .banner {
-
     display: flex;
 
     align-items: flex-start;
@@ -1359,33 +1220,26 @@ textarea.input {
     font-size: 0.88rem;
 
     line-height: 1.5;
-
 }
 
 .banner-icon {
-
     width: 18px;
     height: 18px;
 
     flex-shrink: 0;
 
     color: var(--accent);
-
 }
 
 .banner-error {
-
     border-left-color: var(--accent);
 
     background: var(--surface-2);
-
 }
-
 
 /* ---------- Topbar ---------- */
 
 .topbar {
-
     display: grid;
 
     grid-template-columns: 1fr auto;
@@ -1401,11 +1255,9 @@ textarea.input {
     border-bottom: 1px solid var(--rule);
 
     position: relative;
-
 }
 
 .topbar::before {
-
     content: "";
 
     position: absolute;
@@ -1417,12 +1269,9 @@ textarea.input {
     height: 1px;
 
     background: var(--accent);
-
 }
 
-
 .topbar .meta-row {
-
     display: flex;
 
     align-items: center;
@@ -1432,11 +1281,9 @@ textarea.input {
     margin-bottom: 0.7rem;
 
     flex-wrap: wrap;
-
 }
 
 .topbar h2 {
-
     margin: 0;
 
     font-family: var(--font-display);
@@ -1445,7 +1292,7 @@ textarea.input {
 
     font-size: clamp(2rem, 4vw, 3.2rem);
 
-    line-height: 1.0;
+    line-height: 1;
 
     letter-spacing: -0.03em;
 
@@ -1453,22 +1300,21 @@ textarea.input {
 
     text-wrap: balance;
 
-    font-variation-settings: "opsz" 144, "SOFT" 30, "WONK" 1;
-
+    font-variation-settings:
+        "opsz" 144,
+        "SOFT" 30,
+        "WONK" 1;
 }
 
 .topbar h2 em {
-
     font-style: italic;
 
     color: var(--accent);
 
     font-weight: 400;
-
 }
 
 .topbar p {
-
     margin: 0.5rem 0 0;
 
     color: var(--ink-soft);
@@ -1481,13 +1327,12 @@ textarea.input {
 
     font-style: italic;
 
-    font-variation-settings: "opsz" 14, "SOFT" 50;
-
+    font-variation-settings:
+        "opsz" 14,
+        "SOFT" 50;
 }
 
-
 .topbar-actions {
-
     display: flex;
 
     gap: 0.4rem;
@@ -1495,14 +1340,11 @@ textarea.input {
     align-items: center;
 
     flex-wrap: wrap;
-
 }
-
 
 /* ---------- Toolbar ---------- */
 
 .toolbar {
-
     margin-bottom: 1.6rem;
 
     padding: 0;
@@ -1524,25 +1366,19 @@ textarea.input {
     border-radius: 0;
 
     padding-bottom: 0.9rem;
-
 }
 
 .toolbar .field-inline {
-
     gap: 1rem;
-
 }
 
-.toolbar .field>span {
-
+.toolbar .field > span {
     font-size: 0.66rem;
 
     letter-spacing: 0.22em;
-
 }
 
 .toolbar-actions {
-
     display: flex;
 
     gap: 0.4rem;
@@ -1552,18 +1388,13 @@ textarea.input {
     justify-content: flex-end;
 
     flex-wrap: wrap;
-
 }
 
-
 @media (max-width: 768px) {
-
     .toolbar {
-
         grid-template-columns: 1fr;
 
         gap: 0.8rem;
-
     }
 
     .toolbar-actions {
@@ -1574,14 +1405,11 @@ textarea.input {
         grid-template-columns: 1fr;
         gap: 0.4rem;
     }
-
 }
-
 
 /* ---------- Dashboard grid ---------- */
 
 .dashboard-grid {
-
     display: grid;
 
     grid-template-columns: minmax(320px, 0.85fr) minmax(0, 1.4fr);
@@ -1589,7 +1417,6 @@ textarea.input {
     gap: 1.6rem;
 
     align-items: start;
-
 }
 
 .detail-column {
@@ -1597,43 +1424,31 @@ textarea.input {
     gap: 1.6rem;
 }
 
-
 @media (max-width: 1100px) {
-
     .dashboard-grid {
-
         grid-template-columns: minmax(280px, 0.8fr) minmax(0, 1.4fr);
 
         gap: 1.2rem;
-
     }
-
 }
 
 @media (max-width: 880px) {
-
     .dashboard-grid {
         grid-template-columns: 1fr;
     }
-
 }
-
 
 .panel-list,
 .panel-detail,
 .panel-profile {
-
     min-height: 240px;
 
     container-type: inline-size;
-
 }
-
 
 /* panel head — like a section header in a book */
 
 .panel-head {
-
     display: grid;
 
     grid-template-columns: 1fr auto;
@@ -1647,11 +1462,9 @@ textarea.input {
     border-bottom: 1px solid var(--rule);
 
     position: relative;
-
 }
 
 .panel-head::after {
-
     content: "";
 
     position: absolute;
@@ -1663,11 +1476,9 @@ textarea.input {
     height: 1px;
 
     background: var(--accent);
-
 }
 
 .panel-head h3 {
-
     margin: 0;
 
     font-family: var(--font-ui);
@@ -1687,11 +1498,9 @@ textarea.input {
     align-items: center;
 
     gap: 0.6rem;
-
 }
 
 .panel-head h3::before {
-
     content: "§";
 
     font-family: var(--font-display);
@@ -1707,11 +1516,9 @@ textarea.input {
     text-transform: none;
 
     font-weight: 500;
-
 }
 
 .panel-head .meta {
-
     font-family: var(--font-mono);
 
     font-size: 0.7rem;
@@ -1721,18 +1528,15 @@ textarea.input {
     letter-spacing: 0.08em;
 
     font-feature-settings: "tnum" 1;
-
 }
 
 .panel-body {
     padding: 1rem 1.3rem 1.3rem;
 }
 
-
 /* ---------- Pills ---------- */
 
 .pill {
-
     display: inline-flex;
 
     align-items: center;
@@ -1762,25 +1566,19 @@ textarea.input {
     font-feature-settings: "tnum" 1;
 
     text-transform: uppercase;
-
 }
 
 .pill-gold {
-
     border-color: var(--accent-line);
 
     color: var(--accent);
-
 }
 
 .pill-mute {
-
     color: var(--ink-soft);
 
     background: var(--paper-2);
-
 }
-
 
 /* ---------- Discipline items (TOC-style) ---------- */
 
@@ -1791,16 +1589,11 @@ textarea.input {
    - .panel-body: fallback counter scope (works directly inside .panel-body) */
 
 .disc-list,
-
 .panel-body {
-
     counter-reset: disc;
-
 }
 
-
 .disc-item {
-
     --disc-tone: var(--ink);
 
     --disc-tone-bg: transparent;
@@ -1831,19 +1624,16 @@ textarea.input {
 
     animation-delay: var(--delay, 0ms);
 
-    transition: background var(--dur-2) var(--ease),
-
+    transition:
+        background var(--dur-2) var(--ease),
         padding-left var(--dur-3) var(--ease);
-
 }
 
 .disc-item:last-child {
     border-bottom: none;
 }
 
-
 .disc-item::before {
-
     content: counter(disc, decimal-leading-zero);
 
     position: absolute;
@@ -1865,39 +1655,30 @@ textarea.input {
     font-feature-settings: "tnum" 1;
 
     transition: color var(--dur-2) var(--ease);
-
 }
 
 .disc-item .disc-inner {
-
     /* optional inner wrapper — provides extra indent if present */
 
     margin-left: 0;
 
     display: block;
-
 }
 
-
 .disc-item:hover {
-
     background: var(--paper-2);
 
     padding-left: 2.6rem;
-
 }
 
 .disc-item:hover::before {
     color: var(--ink-soft);
 }
 
-
 .disc-item-active {
-
     background: var(--paper-warm);
 
     padding-left: 2.6rem;
-
 }
 
 .disc-item-active::before {
@@ -1908,9 +1689,7 @@ textarea.input {
     color: var(--ink);
 }
 
-
 @keyframes row-in {
-
     from {
         opacity: 0;
         transform: translateY(4px);
@@ -1920,12 +1699,9 @@ textarea.input {
         opacity: 1;
         transform: translateY(0);
     }
-
 }
 
-
 .disc-item-head {
-
     display: grid;
 
     grid-template-columns: 1fr auto;
@@ -1935,11 +1711,9 @@ textarea.input {
     gap: 0.8rem;
 
     margin-bottom: 0.32rem;
-
 }
 
 .disc-title {
-
     font-family: var(--font-display);
 
     font-size: 1.02rem;
@@ -1952,14 +1726,14 @@ textarea.input {
 
     letter-spacing: -0.012em;
 
-    font-variation-settings: "opsz" 36, "SOFT" 30;
+    font-variation-settings:
+        "opsz" 36,
+        "SOFT" 30;
 
     transition: color var(--dur-2) var(--ease);
-
 }
 
 .disc-item-meta {
-
     display: flex;
 
     justify-content: space-between;
@@ -1977,11 +1751,9 @@ textarea.input {
     letter-spacing: 0.02em;
 
     margin-bottom: 0.22rem;
-
 }
 
 .disc-item-meta .num {
-
     font-family: var(--font-mono);
 
     font-size: 0.7rem;
@@ -1991,11 +1763,9 @@ textarea.input {
     letter-spacing: 0.06em;
 
     font-feature-settings: "tnum" 1;
-
 }
 
 .disc-item-teachers {
-
     color: var(--ink-soft);
 
     font-size: 0.78rem;
@@ -2006,7 +1776,9 @@ textarea.input {
 
     font-style: italic;
 
-    font-variation-settings: "opsz" 14, "SOFT" 50;
+    font-variation-settings:
+        "opsz" 14,
+        "SOFT" 50;
 
     display: -webkit-box;
 
@@ -2017,24 +1789,19 @@ textarea.input {
     overflow: hidden;
 
     text-overflow: ellipsis;
-
 }
 
 .disc-item-teachers::before {
-
     content: "— ";
 
     color: var(--ink-mute);
 
     font-style: normal;
-
 }
-
 
 /* ---------- Grade chips (typographic, not big colored pill) ---------- */
 
 .grade-chip {
-
     --tone: var(--ink);
 
     --tone-bg: transparent;
@@ -2071,14 +1838,14 @@ textarea.input {
 
     transition: transform var(--dur-2) var(--ease);
 
-    font-variation-settings: "opsz" 24, "SOFT" 30;
-
+    font-variation-settings:
+        "opsz" 24,
+        "SOFT" 30;
 }
 
 .grade-chip:hover {
     transform: scale(1.04);
 }
-
 
 .grade-chip.grade-excellent {
     --tone: var(--g-excellent);
@@ -2105,11 +1872,9 @@ textarea.input {
     --tone-bg: var(--g-mute-bg);
 }
 
-
 /* ---------- Tabs (text, not pills) ---------- */
 
 .tabs {
-
     display: flex;
 
     gap: 0;
@@ -2119,11 +1884,9 @@ textarea.input {
     padding: 0 1.3rem;
 
     border-bottom: 1px solid var(--rule);
-
 }
 
 .tab {
-
     border: none;
 
     background: transparent;
@@ -2149,15 +1912,13 @@ textarea.input {
     transition: color var(--dur-2) var(--ease);
 
     white-space: nowrap;
-
 }
 
-.tab+.tab {
+.tab + .tab {
     margin-left: 0.2rem;
 }
 
 .tab::after {
-
     content: "";
 
     position: absolute;
@@ -2174,8 +1935,9 @@ textarea.input {
 
     transform-origin: left center;
 
-    transition: transform var(--dur-3) var(--ease), background var(--dur-2) var(--ease);
-
+    transition:
+        transform var(--dur-3) var(--ease),
+        background var(--dur-2) var(--ease);
 }
 
 .tab:hover {
@@ -2183,21 +1945,16 @@ textarea.input {
 }
 
 .tab:hover::after {
-
     transform: scaleX(1);
 
     background: var(--ink-soft);
-
 }
 
 .tab-active {
-
     color: var(--ink);
-
 }
 
 .tab-active::after {
-
     transform: scaleX(1);
 
     background: var(--accent);
@@ -2205,24 +1962,19 @@ textarea.input {
     height: 2px;
 
     bottom: -1px;
-
 }
-
 
 .tab-panel {
     display: none;
 }
 
 .tab-panel-active {
-
     display: block;
 
     animation: tab-in 320ms var(--ease);
-
 }
 
 @keyframes tab-in {
-
     from {
         opacity: 0;
         transform: translateY(4px);
@@ -2232,14 +1984,11 @@ textarea.input {
         opacity: 1;
         transform: translateY(0);
     }
-
 }
-
 
 /* ---------- Grade panel (main display) ---------- */
 
 .grade-panel {
-
     text-align: center;
 
     padding: 1.5rem 1rem 0.5rem;
@@ -2247,7 +1996,6 @@ textarea.input {
     border-bottom: 1px dashed var(--rule);
 
     margin-bottom: 1.2rem;
-
 }
 
 .grade-panel:last-child {
@@ -2255,9 +2003,7 @@ textarea.input {
     margin-bottom: 0;
 }
 
-
 .grade-main {
-
     --tone: var(--ink);
 
     display: inline-flex;
@@ -2280,12 +2026,14 @@ textarea.input {
 
     color: var(--tone);
 
-    font-variation-settings: "opsz" 144, "SOFT" 30, "WONK" 1;
+    font-variation-settings:
+        "opsz" 144,
+        "SOFT" 30,
+        "WONK" 1;
 
     letter-spacing: -0.04em;
 
     transition: color var(--dur-2) var(--ease);
-
 }
 
 .grade-main.grade-excellent {
@@ -2308,9 +2056,7 @@ textarea.input {
     --tone: var(--g-mute);
 }
 
-
 .grade-main sup {
-
     font-size: 0.32em;
 
     font-style: normal;
@@ -2328,12 +2074,9 @@ textarea.input {
     position: relative;
 
     top: -0.6em;
-
 }
 
-
 .grade-caption {
-
     margin: 0 0 0.5rem;
 
     color: var(--ink-soft);
@@ -2344,12 +2087,12 @@ textarea.input {
 
     font-style: italic;
 
-    font-variation-settings: "opsz" 14, "SOFT" 50;
-
+    font-variation-settings:
+        "opsz" 14,
+        "SOFT" 50;
 }
 
 .grade-caption strong {
-
     color: var(--ink);
 
     font-weight: 500;
@@ -2357,24 +2100,19 @@ textarea.input {
     font-family: var(--font-display);
 
     font-style: italic;
-
 }
-
 
 /* ---------- KV grid ---------- */
 
 .kv-grid {
-
     display: grid;
 
     gap: 0;
 
     margin: 0;
-
 }
 
-.kv-grid>div {
-
+.kv-grid > div {
     display: grid;
 
     grid-template-columns: minmax(120px, 0.4fr) 1fr;
@@ -2388,19 +2126,17 @@ textarea.input {
     padding: 0.55rem 0;
 
     transition: border-color var(--dur-2) var(--ease);
-
 }
 
-.kv-grid>div:hover {
+.kv-grid > div:hover {
     border-bottom-color: var(--ink-soft);
 }
 
-.kv-grid>div:last-child {
+.kv-grid > div:last-child {
     border-bottom: none;
 }
 
 .kv-grid dt {
-
     margin: 0;
 
     color: var(--ink-soft);
@@ -2414,11 +2150,9 @@ textarea.input {
     letter-spacing: 0.16em;
 
     font-weight: 600;
-
 }
 
 .kv-grid dd {
-
     margin: 0;
 
     font-weight: 500;
@@ -2433,29 +2167,26 @@ textarea.input {
 
     text-align: right;
 
-    font-variation-settings: "opsz" 24, "SOFT" 30;
-
+    font-variation-settings:
+        "opsz" 24,
+        "SOFT" 30;
 }
 
 .kv-compact dd {
     font-size: 0.9rem;
 }
 
-
 /* ---------- Tables ---------- */
 
 .table-wrap {
-
     width: 100%;
 
     overflow: auto;
 
     border-top: 1px solid var(--rule);
-
 }
 
 table {
-
     width: 100%;
 
     border-collapse: collapse;
@@ -2463,7 +2194,6 @@ table {
     font-size: 0.85rem;
 
     font-feature-settings: "tnum" 1;
-
 }
 
 thead {
@@ -2472,7 +2202,6 @@ thead {
 
 th,
 td {
-
     border-bottom: 1px dashed var(--rule-light);
 
     text-align: left;
@@ -2480,11 +2209,9 @@ td {
     padding: 0.6rem 0.7rem;
 
     vertical-align: middle;
-
 }
 
 th {
-
     color: var(--ink-soft);
 
     font-weight: 600;
@@ -2506,13 +2233,10 @@ th {
     top: 0;
 
     z-index: 1;
-
 }
 
 tbody tr {
-
     transition: background var(--dur-2) var(--ease);
-
 }
 
 tbody tr:hover {
@@ -2522,7 +2246,6 @@ tbody tr:hover {
 tbody tr:last-child td {
     border-bottom: none;
 }
-
 
 .attended {
     color: var(--g-excellent);
@@ -2534,7 +2257,6 @@ tbody tr:last-child td {
     font-weight: 600;
 }
 
-
 /* ---------- Modules ---------- */
 
 .module-list {
@@ -2543,7 +2265,6 @@ tbody tr:last-child td {
 }
 
 .module-card {
-
     border-bottom: 1px dashed var(--ink-faint);
 
     background: transparent;
@@ -2552,8 +2273,9 @@ tbody tr:last-child td {
 
     padding: 1.1rem 0.2rem;
 
-    transition: padding-left var(--dur-2) var(--ease), background var(--dur-2) var(--ease);
-
+    transition:
+        padding-left var(--dur-2) var(--ease),
+        background var(--dur-2) var(--ease);
 }
 
 .module-card:hover {
@@ -2566,7 +2288,6 @@ tbody tr:last-child td {
 }
 
 .module-card h4 {
-
     margin: 0 0 0.6rem;
 
     font-size: 0.95rem;
@@ -2587,14 +2308,14 @@ tbody tr:last-child td {
 
     gap: 1rem;
 
-    font-variation-settings: "opsz" 24, "SOFT" 30;
+    font-variation-settings:
+        "opsz" 24,
+        "SOFT" 30;
 
     letter-spacing: -0.01em;
-
 }
 
 .module-card h4 .count {
-
     font-family: var(--font-mono);
 
     font-size: 0.68rem;
@@ -2608,11 +2329,9 @@ tbody tr:last-child td {
     letter-spacing: 0.08em;
 
     font-feature-settings: "tnum" 1;
-
 }
 
 .module-card ul {
-
     list-style: none;
 
     margin: 0;
@@ -2622,11 +2341,9 @@ tbody tr:last-child td {
     display: grid;
 
     gap: 0.4rem;
-
 }
 
 .module-card li {
-
     display: grid;
 
     grid-template-columns: 1fr auto;
@@ -2640,11 +2357,9 @@ tbody tr:last-child td {
     align-items: baseline;
 
     position: relative;
-
 }
 
 .module-card li::before {
-
     content: "·";
 
     position: absolute;
@@ -2652,13 +2367,10 @@ tbody tr:last-child td {
     left: 0.2rem;
 
     color: var(--ink-faint);
-
 }
 
 .module-card li .mono {
-
     text-align: right;
-
 }
 
 .module-card li .name {
@@ -2667,7 +2379,6 @@ tbody tr:last-child td {
 }
 
 .module-card li .weight {
-
     font-family: var(--font-mono);
 
     font-size: 0.72rem;
@@ -2677,12 +2388,9 @@ tbody tr:last-child td {
     font-feature-settings: "tnum" 1;
 
     letter-spacing: 0.04em;
-
 }
 
-
 .module-total {
-
     display: grid;
     grid-template-columns: 1fr auto;
     gap: 1rem;
@@ -2693,19 +2401,15 @@ tbody tr:last-child td {
     font-size: 0.9rem;
     font-weight: 600;
     color: var(--ink);
-
 }
 
 .module-total .mono {
-
     font-size: 0.8rem;
     font-weight: 500;
     color: var(--ink-soft);
-
 }
 
 .module-exam {
-
     display: grid;
     grid-template-columns: 1fr auto;
     gap: 1rem;
@@ -2716,22 +2420,17 @@ tbody tr:last-child td {
     font-size: 0.9rem;
     font-weight: 600;
     color: var(--accent);
-
 }
 
 .module-exam .mono {
-
     font-size: 0.8rem;
     font-weight: 500;
     color: var(--ink-soft);
-
 }
 
 .module-total-grand {
-
     border-top: none;
     font-weight: 700;
-
 }
 
 /* ---------- Teachers (directory style) ---------- */
@@ -2742,7 +2441,6 @@ tbody tr:last-child td {
 }
 
 .teacher-row {
-
     display: grid;
 
     grid-template-columns: auto 1fr;
@@ -2761,8 +2459,9 @@ tbody tr:last-child td {
 
     background: transparent;
 
-    transition: padding-left var(--dur-2) var(--ease), background var(--dur-2) var(--ease);
-
+    transition:
+        padding-left var(--dur-2) var(--ease),
+        background var(--dur-2) var(--ease);
 }
 
 .teacher-row:last-child {
@@ -2775,7 +2474,6 @@ tbody tr:last-child td {
 }
 
 .teacher-row h4 {
-
     margin: 0;
 
     font-size: 0.92rem;
@@ -2786,14 +2484,14 @@ tbody tr:last-child td {
 
     color: var(--ink);
 
-    font-variation-settings: "opsz" 24, "SOFT" 30;
+    font-variation-settings:
+        "opsz" 24,
+        "SOFT" 30;
 
     letter-spacing: -0.005em;
-
 }
 
 .teacher-row p {
-
     margin: 0.1rem 0 0;
 
     color: var(--ink-soft);
@@ -2803,11 +2501,9 @@ tbody tr:last-child td {
     font-family: var(--font-ui);
 
     letter-spacing: 0.02em;
-
 }
 
 .teacher-row p .dot {
-
     display: inline-block;
 
     width: 3px;
@@ -2820,12 +2516,9 @@ tbody tr:last-child td {
     margin: 0 0.45rem;
 
     vertical-align: middle;
-
 }
 
-
 .avatar {
-
     width: 2.2rem;
 
     height: 2.2rem;
@@ -2856,25 +2549,22 @@ tbody tr:last-child td {
 
     font-variation-settings: "opsz" 24;
 
-    transition: background var(--dur-2) var(--ease), color var(--dur-2) var(--ease);
-
+    transition:
+        background var(--dur-2) var(--ease),
+        color var(--dur-2) var(--ease);
 }
 
 .teacher-row:hover .avatar {
-
     background: var(--ink);
 
     color: var(--paper);
 
     border-color: var(--ink);
-
 }
-
 
 /* ---------- States ---------- */
 
 .state {
-
     border: 1px solid var(--rule);
 
     border-left: 3px solid var(--ink-soft);
@@ -2892,11 +2582,9 @@ tbody tr:last-child td {
     flex-direction: column;
 
     gap: 0.4rem;
-
 }
 
 .state h4 {
-
     margin: 0;
 
     font-size: 0.95rem;
@@ -2909,8 +2597,9 @@ tbody tr:last-child td {
 
     color: var(--ink);
 
-    font-variation-settings: "opsz" 24, "SOFT" 30;
-
+    font-variation-settings:
+        "opsz" 24,
+        "SOFT" 30;
 }
 
 .state p {
@@ -2920,11 +2609,9 @@ tbody tr:last-child td {
 }
 
 .state-error {
-
     border-left-color: var(--accent);
 
     background: var(--surface-2);
-
 }
 
 .state-error h4 {
@@ -2941,9 +2628,7 @@ tbody tr:last-child td {
     padding: 1.1rem 1.2rem;
 }
 
-
 .empty {
-
     text-align: center;
 
     padding: 2.5rem 1rem;
@@ -2956,12 +2641,12 @@ tbody tr:last-child td {
 
     font-style: italic;
 
-    font-variation-settings: "opsz" 14, "SOFT" 50;
-
+    font-variation-settings:
+        "opsz" 14,
+        "SOFT" 50;
 }
 
 .empty::before {
-
     content: "—";
 
     display: block;
@@ -2977,28 +2662,29 @@ tbody tr:last-child td {
     font-size: 1.4rem;
 
     letter-spacing: 0.2em;
-
 }
-
 
 /* ---------- Skeleton ---------- */
 
 .skeleton {
-
     border-radius: 0;
 
     height: 0.7rem;
 
     margin-bottom: 0.5rem;
 
-    background: linear-gradient(90deg, var(--paper-2) 0%, var(--paper-edge) 50%, var(--paper-2) 100%);
+    background: linear-gradient(
+        90deg,
+        var(--paper-2) 0%,
+        var(--paper-edge) 50%,
+        var(--paper-2) 100%
+    );
 
     background-size: 200% 100%;
 
     animation: shimmer 1.6s linear infinite;
 
     border: none;
-
 }
 
 .skeleton::before {
@@ -3010,7 +2696,6 @@ tbody tr:last-child td {
 }
 
 @keyframes shimmer {
-
     from {
         background-position: 200% 0;
     }
@@ -3018,14 +2703,11 @@ tbody tr:last-child td {
     to {
         background-position: -200% 0;
     }
-
 }
-
 
 /* ---------- Debug card ---------- */
 
 .debug-card {
-
     margin-top: 1.6rem;
 
     background: var(--surface-2);
@@ -3033,11 +2715,9 @@ tbody tr:last-child td {
     border: 1px solid var(--rule);
 
     border-radius: 0;
-
 }
 
 .debug-card summary {
-
     cursor: pointer;
 
     font-family: var(--font-ui);
@@ -3065,7 +2745,6 @@ tbody tr:last-child td {
     border-bottom: 1px solid transparent;
 
     transition: border-color var(--dur-2) var(--ease);
-
 }
 
 .debug-card[open] summary {
@@ -3073,7 +2752,6 @@ tbody tr:last-child td {
 }
 
 .debug-card summary::before {
-
     content: "▸";
 
     color: var(--ink-mute);
@@ -3081,7 +2759,6 @@ tbody tr:last-child td {
     transition: transform var(--dur-2) var(--ease);
 
     display: inline-block;
-
 }
 
 .debug-card[open] summary::before {
@@ -3089,7 +2766,6 @@ tbody tr:last-child td {
 }
 
 .debug-card pre {
-
     margin: 0;
 
     padding: 0.4rem 1.2rem 1.1rem;
@@ -3107,14 +2783,11 @@ tbody tr:last-child td {
     line-height: 1.55;
 
     font-feature-settings: "tnum" 1;
-
 }
-
 
 /* ---------- Footer / colophon ---------- */
 
 .colophon {
-
     margin-top: 2.4rem;
 
     padding-top: 1.4rem;
@@ -3138,7 +2811,6 @@ tbody tr:last-child td {
     letter-spacing: 0.06em;
 
     font-feature-settings: "tnum" 1;
-
 }
 
 .colophon .links {
@@ -3147,53 +2819,43 @@ tbody tr:last-child td {
 }
 
 .colophon a {
-
     color: var(--ink-soft);
 
     text-decoration: none;
 
     border-bottom: 1px solid var(--rule-2);
 
-    transition: color var(--dur-2) var(--ease), border-color var(--dur-2) var(--ease);
+    transition:
+        color var(--dur-2) var(--ease),
+        border-color var(--dur-2) var(--ease);
 
     padding-bottom: 1px;
-
 }
 
 .colophon a:hover {
-
     color: var(--accent);
 
     border-bottom-color: var(--accent);
-
 }
 
-
 @media (max-width: 768px) {
-
     .colophon {
         grid-template-columns: 1fr;
         gap: 0.6rem;
     }
-
 }
-
 
 /* ---------- Container queries (subtle) ---------- */
 
 @container (min-width: 520px) {
-
     .panel-body {
         padding: 1.1rem 1.4rem 1.4rem;
     }
-
 }
-
 
 /* ---------- Responsive ---------- */
 
 @media (max-width: 768px) {
-
     .topbar {
         grid-template-columns: 1fr;
         align-items: start;
@@ -3208,13 +2870,11 @@ tbody tr:last-child td {
     }
 
     .tabs {
-
         overflow-x: auto;
 
         scrollbar-width: none;
 
         padding: 0 0.6rem;
-
     }
 
     .tabs::-webkit-scrollbar {
@@ -3233,18 +2893,14 @@ tbody tr:last-child td {
     .disc-item-active {
         padding-left: 2.4rem;
     }
-
 }
-
 
 /* ---------- Reduced motion ---------- */
 
 @media (prefers-reduced-motion: reduce) {
-
     *,
     *::before,
     *::after {
-
         animation-duration: 0.01ms !important;
 
         animation-iteration-count: 1 !important;
@@ -3252,37 +2908,28 @@ tbody tr:last-child td {
         transition-duration: 0.01ms !important;
 
         scroll-behavior: auto !important;
-
     }
-
 }
-
 
 /* ---------- High contrast ---------- */
 
 @media (prefers-contrast: more) {
-
     :root {
-
         --rule: rgba(14, 20, 28, 0.22);
 
         --rule-2: rgba(14, 20, 28, 0.38);
 
-        --ink-soft: #1F262E;
-
+        --ink-soft: #1f262e;
     }
 
     .btn {
         border-width: 1.5px;
     }
-
 }
-
 
 /* ---------- Print ---------- */
 
 @media print {
-
     body {
         background: white;
     }
@@ -3309,10 +2956,9 @@ tbody tr:last-child td {
         display: block !important;
     }
 
-    .app-shell>* {
+    .app-shell > * {
         page-break-inside: avoid;
     }
-
 }
 .dialog-backdrop {
     position: fixed;
@@ -3363,4 +3009,54 @@ tbody tr:last-child td {
     .dialog-actions .btn {
         width: 100%;
     }
+}
+
+.startup-loader {
+    min-height: 100dvh;
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    gap: 0.7rem;
+    padding: 2rem;
+    background: var(--paper);
+    color: var(--ink-soft);
+    text-align: center;
+}
+
+.startup-loader-logo {
+    width: 3.8rem;
+    height: 3.8rem;
+    object-fit: contain;
+    opacity: 0.82;
+}
+
+.startup-loader-spinner {
+    width: 1.15rem;
+    height: 1.15rem;
+    border: 2px solid var(--rule-2);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: startup-spin 0.8s linear infinite;
+}
+
+.startup-loader p {
+    margin: 0.15rem 0 0;
+    font-family: var(--font-display);
+    font-size: 1rem;
+    color: var(--ink-2);
+}
+
+.startup-loader small {
+    color: var(--ink-mute);
+    font-size: 0.7rem;
+}
+
+@keyframes startup-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.footer-credit-dashboard {
+    margin: 2rem 0 0;
 }

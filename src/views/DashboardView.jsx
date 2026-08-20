@@ -308,6 +308,7 @@ export default function DashboardView({
                 <summary>Debug API</summary>
                 <pre>{JSON.stringify(debugLog, null, 2)}</pre>
             </details>
+            <p className="footer-credit footer-credit-dashboard">romka навайбкодил</p>
         </section>
     )
 }

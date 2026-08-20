@@ -8,6 +8,7 @@ import {
   StatusBar,
 } from 'react-native'
 import { colors, fonts } from '../theme'
+import { getDetailCache, setDetailCache } from '../utils/cache'
 import { fetchJournal, fetchSubject, fetchIndex, fetchEvents } from '../api/client'
 import {
   formatDisciplineType,
@@ -43,7 +44,28 @@ export default function DetailScreen({ route, navigation }) {
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [offline, setOffline] = useState(false)
+  const [lastUpdated, setLastUpdated] = useState('')
   const [activeTab, setActiveTab] = useState('grade')
+
+  const applyCache = (cached) => {
+    setDiscipline(cached.discipline || null)
+    setMarks(cached.marks || {})
+    setTeachersMap(cached.teachersMap || {})
+    setJournal(cached.journal || null)
+    setSubject(cached.subject || null)
+    setEvents(Array.isArray(cached.events) ? cached.events : [])
+    setLastUpdated(cached.savedAt || '')
+  }
+
+  const isNetworkError = (err) => !/^HTTP \d{3}/i.test(String(err?.message || ''))
+
+  const formatCacheDate = (value) => {
+    if (!value) return ''
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return ''
+    return date.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+  }
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -69,13 +91,40 @@ export default function DetailScreen({ route, navigation }) {
       setSubject(subjectJson)
 
       const rId = idxResponse.RecordbookID || idxResponse.RecordBook || idxResponse.Student?.RecordbookID || idxResponse.Student?.RecordBook || idxResponse.Student?.ID || ''
+      let nextEvents = []
       try {
         const eventsList = await fetchEvents(token, String(rId), semesterID)
-        setEvents(Array.isArray(eventsList) ? eventsList : [])
+        nextEvents = Array.isArray(eventsList) ? eventsList : []
+        setEvents(nextEvents)
       } catch {
-        setEvents([])
+        const cached = await getDetailCache(token, semesterID, disciplineID)
+        nextEvents = Array.isArray(cached?.events) ? cached.events : []
+        setEvents(nextEvents)
       }
+
+      const savedAt = new Date().toISOString()
+      setOffline(false)
+      setLastUpdated(savedAt)
+      await setDetailCache(token, semesterID, disciplineID, {
+        discipline: found || null,
+        marks: idxResponse.Marks || {},
+        teachersMap: idxResponse.Teachers || {},
+        journal: journalJson,
+        subject: subjectJson,
+        events: nextEvents,
+        savedAt,
+      })
     } catch (err) {
+      if (isNetworkError(err)) {
+        const cached = await getDetailCache(token, semesterID, disciplineID)
+        if (cached) {
+          applyCache(cached)
+          setOffline(true)
+          setError('')
+          return
+        }
+      }
+      setOffline(false)
       setError(err.message)
     } finally {
       setLoading(false)
@@ -306,6 +355,7 @@ export default function DetailScreen({ route, navigation }) {
       <View style={styles.root}>
         <StatusBar barStyle="dark-content" backgroundColor={colors.paper} />
         <StateLoading />
+        <Text style={styles.footer}>romka навайбкодил</Text>
       </View>
     )
   }
@@ -319,6 +369,7 @@ export default function DetailScreen({ route, navigation }) {
           details={error}
           onRetry={loadData}
         />
+        <Text style={styles.footer}>romka навайбкодил</Text>
       </View>
     )
   }
@@ -327,6 +378,13 @@ export default function DetailScreen({ route, navigation }) {
     <View style={styles.root}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.paper} />
       <ScrollView contentContainerStyle={styles.scroll}>
+        {offline ? (
+          <View style={styles.offlineBanner}>
+            <Text style={styles.offlineTitle}>Нет соединения</Text>
+            <Text style={styles.offlineText}>Показаны последние сохранённые данные{lastUpdated ? ` · ${formatCacheDate(lastUpdated)}` : ''}</Text>
+          </View>
+        ) : null}
+
         <View style={styles.header}>
           <Text style={styles.headerTitle} numberOfLines={2}>
             {currentDiscipline?.SubjectName || subjectInfo?.SubjectName || 'Детали дисциплины'}
@@ -357,6 +415,7 @@ export default function DetailScreen({ route, navigation }) {
         </ScrollView>
 
         <View style={styles.tabContent}>{renderTab(activeTab)}</View>
+        <Text style={styles.footer}>romka навайбкодил</Text>
       </ScrollView>
     </View>
   )
@@ -370,6 +429,32 @@ const styles = StyleSheet.create({
   scroll: {
     padding: 16,
     paddingBottom: 40,
+  },
+  footer: {
+    marginTop: 28,
+    fontSize: 10,
+    color: colors.inkFaint,
+    textAlign: 'center',
+    fontFamily: fonts.mono,
+    letterSpacing: 1.5,
+  },
+  offlineBanner: {
+    marginBottom: 14,
+    padding: 10,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.accent,
+    backgroundColor: colors.accentSoft,
+  },
+  offlineTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.accent,
+  },
+  offlineText: {
+    marginTop: 3,
+    fontSize: 12,
+    lineHeight: 17,
+    color: colors.inkSoft,
   },
   header: {
     flexDirection: 'row',

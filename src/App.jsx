@@ -290,6 +290,17 @@ export default function App() {
         return uniq
     }, [detail, selectedDiscipline, teachersMap])
 
+    if (!authReady) {
+        return (
+            <main className="startup-loader" aria-live="polite" aria-busy="true">
+                <img className="startup-loader-logo" src="/sfedu.svg" alt="Южный федеральный университет" />
+                <span className="startup-loader-spinner" aria-hidden="true" />
+                <p>Выполняется вход...</p>
+                <small>Проверяем сохранённый токен</small>
+            </main>
+        )
+    }
+
     return (
         <div>
             <LoginView
