@@ -2,8 +2,8 @@ import React from 'react'
 import { View, Text, StyleSheet } from 'react-native'
 import { colors, fonts } from '../theme'
 
-export default function ModuleCard({ module, submodules, examSubIds = new Set() }) {
-  const filteredSubIds = (module.Submodules || []).filter(id => !examSubIds.has(id))
+export default function ModuleCard({ module, submodules, examSubIds = new Set(), bonusSubIds = new Set() }) {
+  const filteredSubIds = (module.Submodules || []).filter(id => !examSubIds.has(String(id)) && !bonusSubIds.has(String(id)))
   const subs = filteredSubIds.map((id) => submodules[id]).filter(Boolean)
 
   return (

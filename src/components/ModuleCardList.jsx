@@ -11,16 +11,28 @@ export default function ModuleCardList({ subjectInfo, disciplineMap, submodules 
 
     const isExamType = /exam|difftest|coursework/i.test(String(subjectInfo?.Type || ''))
 
+    const bonusSubIds = new Set()
+    const bonusRefs = Array.isArray(disciplineMap?.Bonus)
+        ? disciplineMap.Bonus
+        : [disciplineMap?.Bonus]
+    for (const ref of bonusRefs) {
+        const id = ref && typeof ref === "object" ? (ref.ID ?? ref.id ?? ref.SubmoduleID) : ref
+        if (id !== undefined && id !== null) bonusSubIds.add(String(id))
+    }
+
     const examSubIds = new Set()
     const examModuleIds = new Set()
     for (const [id, sm] of Object.entries(submodules || {})) {
+        if (bonusSubIds.has(String(id))) continue
         const t = (sm.Title || '').trim()
-        if (t === '' && isExamType) examSubIds.add(id)
-        else if (/экзамен|exam|зачёт|аттестац|итогов/i.test(t)) examSubIds.add(id)
+        if (t === '' && isExamType) examSubIds.add(String(id))
+        else if (/экзамен|exam|зачёт|аттестац|итогов/i.test(t)) examSubIds.add(String(id))
     }
     for (const mod of modules) {
         if (/экзамен|exam|зачёт|аттестац|итогов/i.test(mod.Title || '')) {
-            ;(mod.Submodules || []).forEach(id => examSubIds.add(id))
+            ;(mod.Submodules || []).forEach(id => {
+                if (!bonusSubIds.has(String(id))) examSubIds.add(String(id))
+            })
             examModuleIds.add(mod.Title || '')
         }
     }
@@ -30,20 +42,24 @@ export default function ModuleCardList({ subjectInfo, disciplineMap, submodules 
     const examRate = subjectInfo?.ExamRate ?? subjectInfo?.Exam?.Rate ?? disciplineMap?.Exam?.Rate ?? disciplineMap?.Final?.Rate ?? examSm?.Rate ?? null
     const examMax = 40
 
-    const regSubs = allSubmodules.filter((sm, i) => !examSubIds.has(submoduleIds[i]))
+    const regSubs = allSubmodules.filter((sm, i) => !examSubIds.has(submoduleIds[i]) && !bonusSubIds.has(submoduleIds[i]))
     const examSubs = allSubmodules.filter((sm, i) => examSubIds.has(submoduleIds[i]))
+    const bonusSubs = allSubmodules.filter((sm, i) => bonusSubIds.has(submoduleIds[i]))
     const regRate = regSubs.reduce((s, sm) => s + (Number(sm.Rate) || 0), 0)
     const regMax = regSubs.reduce((s, sm) => s + (Number(sm.MaxRate) || 0), 0)
     const exRate = examSubs.reduce((s, sm) => s + (Number(sm.Rate) || 0), 0)
     const exMax = 40
+    const bonusRate = bonusSubs.reduce((s, sm) => s + (Number(sm.Rate) || 0), 0)
+    const bonusMax = bonusSubs.reduce((s, sm) => s + (Number(sm.MaxRate) || 0), 0)
 
     const examFoundInSubs = examSubIds.size > 0
     const addExRate = (examFoundInSubs || !isExamType) ? 0 : (Number(examRate) || 0)
     const showExamRate = examFoundInSubs ? exRate : examRate
     const showExamMax = examFoundInSubs ? exMax : examMax
     const hasExamData = isExamType && (examFoundInSubs || (examRate != null && examMax != null))
+    const hasBonusData = bonusSubs.length > 0
 
-    const totalRate = regRate + exRate + addExRate
+    const totalRate = regRate + bonusRate + exRate + addExRate
     const totalMax = 100
 
     return (
@@ -54,7 +70,7 @@ export default function ModuleCardList({ subjectInfo, disciplineMap, submodules 
                         <h4>{module.Title || "Модуль"}</h4>
                     </header>
                     <ul>
-                        {(module.Submodules || []).filter(id => !examSubIds.has(id)).map((submoduleID) => {
+                        {(module.Submodules || []).filter(id => !examSubIds.has(String(id)) && !bonusSubIds.has(String(id))).map((submoduleID) => {
                             const info = submodules[submoduleID] || {}
                             return (
                                 <li key={String(submoduleID)}>
@@ -63,7 +79,7 @@ export default function ModuleCardList({ subjectInfo, disciplineMap, submodules 
                                 </li>
                             )
                         })}
-                        {(module.Submodules || []).filter(id => !examSubIds.has(id)).length === 0 && (
+                        {(module.Submodules || []).filter(id => !examSubIds.has(String(id)) && !bonusSubIds.has(String(id))).length === 0 && (
                             <li>
                                 <span>Нет подмодулей</span>
                                 <span className="mono">-</span>
@@ -76,6 +92,12 @@ export default function ModuleCardList({ subjectInfo, disciplineMap, submodules 
                 <span>Итого по модулям</span>
                 <span className="mono">{regRate} / {isExamType ? regMax : totalMax}</span>
             </div>
+            {hasBonusData && (
+                <div className="module-bonus">
+                    <span>Бонусные баллы</span>
+                    <span className="mono">{bonusRate} / {bonusMax}</span>
+                </div>
+            )}
             {hasExamData && (
                 <div className="module-exam">
                     <span>Экзамен</span>

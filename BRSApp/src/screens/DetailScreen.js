@@ -192,15 +192,27 @@ export default function DetailScreen({ route, navigation }) {
   const allSubmodules = Object.values(submodules || {})
   const submoduleIds = Object.keys(submodules || {})
 
+  const bonusSubIds = new Set()
+  const bonusRefs = Array.isArray(disciplineMap?.Bonus)
+    ? disciplineMap.Bonus
+    : [disciplineMap?.Bonus]
+  for (const ref of bonusRefs) {
+    const id = ref && typeof ref === 'object' ? (ref.ID ?? ref.id ?? ref.SubmoduleID) : ref
+    if (id !== undefined && id !== null) bonusSubIds.add(String(id))
+  }
+
   const examSubIds = new Set()
   for (const [id, sm] of Object.entries(submodules || {})) {
+    if (bonusSubIds.has(String(id))) continue
     const t = (sm?.Title || '').trim()
-    if (t === '' && isExamType) examSubIds.add(id)
-    else if (/экзамен|exam|зачёт|аттестац|итогов/i.test(t)) examSubIds.add(id)
+    if (t === '' && isExamType) examSubIds.add(String(id))
+    else if (/экзамен|exam|зачёт|аттестац|итогов/i.test(t)) examSubIds.add(String(id))
   }
   for (const mod of modules) {
     if (/экзамен|exam|зачёт|аттестац|итогов/i.test(mod.Title || '')) {
-      ;(mod.Submodules || []).forEach(id => examSubIds.add(id))
+      ;(mod.Submodules || []).forEach(id => {
+        if (!bonusSubIds.has(String(id))) examSubIds.add(String(id))
+      })
     }
   }
 
@@ -209,20 +221,24 @@ export default function DetailScreen({ route, navigation }) {
   const calcExamRate = subjectInfo?.ExamRate ?? subjectInfo?.Exam?.Rate ?? disciplineMap?.Exam?.Rate ?? disciplineMap?.Final?.Rate ?? examSm?.Rate ?? null
   const examMax = 40
 
-  const regSubs = allSubmodules.filter((sm, i) => !examSubIds.has(submoduleIds[i]))
+  const regSubs = allSubmodules.filter((sm, i) => !examSubIds.has(submoduleIds[i]) && !bonusSubIds.has(submoduleIds[i]))
   const examSubs = allSubmodules.filter((sm, i) => examSubIds.has(submoduleIds[i]))
+  const bonusSubs = allSubmodules.filter((sm, i) => bonusSubIds.has(submoduleIds[i]))
   const regRate = regSubs.reduce((s, sm) => s + (Number(sm.Rate) || 0), 0)
   const regMax = regSubs.reduce((s, sm) => s + (Number(sm.MaxRate) || 0), 0)
   const exRate = examSubs.reduce((s, sm) => s + (Number(sm.Rate) || 0), 0)
   const exMax = 40
+  const bonusRate = bonusSubs.reduce((s, sm) => s + (Number(sm.Rate) || 0), 0)
+  const bonusMax = bonusSubs.reduce((s, sm) => s + (Number(sm.MaxRate) || 0), 0)
 
   const examFoundInSubs = examSubIds.size > 0
   const addExRate = (examFoundInSubs || !isExamType) ? 0 : (Number(calcExamRate) || 0)
   const showExamRate = examFoundInSubs ? exRate : calcExamRate
   const showExamMax = examFoundInSubs ? exMax : examMax
   const hasExamData = isExamType && (examFoundInSubs || (calcExamRate != null && examMax != null))
+  const hasBonusData = bonusSubs.length > 0
 
-  const totalRate = regRate + exRate + addExRate
+  const totalRate = regRate + bonusRate + exRate + addExRate
   const totalMax = 100
 
   const renderTab = (key) => {
@@ -285,7 +301,7 @@ export default function DetailScreen({ route, navigation }) {
         return (
           <View style={styles.moduleList}>
             {modules.map((mod, idx) => (
-              <ModuleCard key={idx} module={mod} submodules={submodules} examSubIds={examSubIds} />
+              <ModuleCard key={idx} module={mod} submodules={submodules} examSubIds={examSubIds} bonusSubIds={bonusSubIds} />
             ))}
             <View style={styles.moduleTotalRow}>
               <Text style={styles.moduleTotalLabel}>Итого по модулям</Text>
@@ -293,6 +309,14 @@ export default function DetailScreen({ route, navigation }) {
                 {regRate} / {isExamType ? regMax : totalMax}
               </Text>
             </View>
+            {hasBonusData && (
+              <View style={styles.moduleBonusRow}>
+                <Text style={styles.moduleBonusLabel}>Бонусные баллы</Text>
+                <Text style={styles.moduleBonusValue}>
+                  {bonusRate} / {bonusMax}
+                </Text>
+              </View>
+            )}
             {hasExamData && (
               <View style={styles.moduleExamRow}>
                 <Text style={styles.moduleExamLabel}>Экзамен</Text>
@@ -566,6 +590,25 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: fonts.mono,
     color: colors.inkSoft,
+  },
+  moduleBonusRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    paddingVertical: 10,
+    marginTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: colors.rule2,
+  },
+  moduleBonusLabel: {
+    fontSize: 14,
+    fontFamily: fonts.display,
+    color: colors.ink,
+  },
+  moduleBonusValue: {
+    fontSize: 13,
+    fontFamily: fonts.mono,
+    color: colors.gExcellent,
   },
   moduleExamRow: {
     flexDirection: 'row',

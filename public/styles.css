@@ -2409,6 +2409,25 @@ tbody tr:last-child td {
     color: var(--ink-soft);
 }
 
+.module-bonus {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 1rem;
+    align-items: baseline;
+    padding: 0.8rem 0.2rem 0.4rem;
+    margin-top: 0.5rem;
+    border-top: 1px solid var(--rule);
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--g-excellent);
+}
+
+.module-bonus .mono {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--ink-soft);
+}
+
 .module-exam {
     display: grid;
     grid-template-columns: 1fr auto;
