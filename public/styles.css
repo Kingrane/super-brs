@@ -3314,3 +3314,53 @@ tbody tr:last-child td {
     }
 
 }
+.dialog-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+    background: rgba(14, 20, 28, 0.42);
+}
+
+.dialog {
+    width: min(100%, 28rem);
+    padding: 2rem;
+    background: var(--surface);
+    border: 1px solid var(--rule2);
+    box-shadow: 0 1.5rem 4rem rgba(14, 20, 28, 0.2);
+}
+
+.dialog h2 {
+    margin: 0.4rem 0 0.8rem;
+    font-family: var(--font-display);
+    font-weight: 400;
+}
+
+.dialog p:not(.kicker) {
+    margin: 0;
+    color: var(--ink-soft);
+    line-height: 1.5;
+}
+
+.dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.6rem;
+    margin-top: 1.5rem;
+}
+
+@media (max-width: 480px) {
+    .dialog {
+        padding: 1.4rem;
+    }
+
+    .dialog-actions {
+        flex-direction: column-reverse;
+    }
+
+    .dialog-actions .btn {
+        width: 100%;
+    }
+}

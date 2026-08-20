@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import {
   View,
   Text,
+  Modal,
   FlatList,
   TouchableOpacity,
   StyleSheet,
@@ -10,7 +11,6 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { colors, fonts } from '../theme'
 import { fetchSemesters, fetchIndex, fetchEvents } from '../api/client'
-import { clearStoredAuth } from '../utils/storage'
 import { formatSemesterLabel } from '../utils/helpers'
 import DisciplineCard from '../components/DisciplineCard'
 import EventCard from '../components/EventCard'
@@ -32,6 +32,7 @@ export default function DashboardScreen({ route, navigation }) {
   const [globalEvents, setGlobalEvents] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [confirmLogoutOpen, setConfirmLogoutOpen] = useState(false)
 
   const loadAll = useCallback(async (semesterID) => {
     if (!semesterID) return
@@ -87,10 +88,40 @@ export default function DashboardScreen({ route, navigation }) {
     loadAll(currentSemesterID)
   }
 
-  const handleLogout = async () => {
-    await clearStoredAuth()
+  const handleLogout = () => {
+    setConfirmLogoutOpen(true)
+  }
+
+  const confirmLogout = () => {
+    setConfirmLogoutOpen(false)
     navigation.reset({ index: 0, routes: [{ name: 'Login' }] })
   }
+
+  const renderLogoutModal = () => (
+    <Modal
+      visible={confirmLogoutOpen}
+      transparent
+      animationType="fade"
+      onRequestClose={() => setConfirmLogoutOpen(false)}>
+      <View style={styles.modalBackdrop}>
+        <View style={styles.modalCard}>
+          <Text style={styles.modalKicker}>ПОДТВЕРЖДЕНИЕ</Text>
+          <Text style={styles.modalTitle}>Выйти из аккаунта?</Text>
+          <Text style={styles.modalDescription}>
+            Вы вернётесь на экран входа. Сохранённый токен останется в поле ввода.
+          </Text>
+          <View style={styles.modalActions}>
+            <TouchableOpacity style={styles.modalCancel} onPress={() => setConfirmLogoutOpen(false)}>
+              <Text style={styles.modalCancelText}>Отмена</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.modalConfirm} onPress={confirmLogout}>
+              <Text style={styles.modalConfirmText}>Выйти</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  )
 
   const renderHeader = () => (
     <View style={styles.headerContainer}>
@@ -148,6 +179,7 @@ export default function DashboardScreen({ route, navigation }) {
       <View style={styles.root}>
         <StatusBar barStyle="dark-content" backgroundColor={colors.paper} />
         {renderHeader()}
+        {renderLogoutModal()}
         <StateLoading />
       </View>
     )
@@ -158,6 +190,7 @@ export default function DashboardScreen({ route, navigation }) {
       <View style={styles.root}>
         <StatusBar barStyle="dark-content" backgroundColor={colors.paper} />
         {renderHeader()}
+        {renderLogoutModal()}
         <StateError
           title="Ошибка загрузки"
           details={error}
@@ -170,6 +203,7 @@ export default function DashboardScreen({ route, navigation }) {
   return (
     <View style={styles.root}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.paper} />
+      {renderLogoutModal()}
       {mainNav === 'disciplines' ? (
         <FlatList
           data={disciplines}
@@ -263,6 +297,68 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     color: colors.ink,
+  },
+  modalBackdrop: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: 'rgba(14,20,28,0.42)',
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 360,
+    padding: 24,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.rule2,
+  },
+  modalKicker: {
+    fontSize: 10,
+    fontWeight: '600',
+    letterSpacing: 2,
+    color: colors.inkSoft,
+  },
+  modalTitle: {
+    marginTop: 8,
+    fontSize: 24,
+    fontFamily: fonts.display,
+    color: colors.ink,
+  },
+  modalDescription: {
+    marginTop: 10,
+    fontSize: 14,
+    lineHeight: 20,
+    color: colors.inkSoft,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
+    marginTop: 22,
+  },
+  modalCancel: {
+    borderWidth: 1,
+    borderColor: colors.rule2,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+  },
+  modalCancelText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.ink,
+  },
+  modalConfirm: {
+    borderWidth: 1,
+    borderColor: colors.accent,
+    backgroundColor: colors.accent,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+  },
+  modalConfirmText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.paper,
   },
   btnTextLogout: {
     fontSize: 12,

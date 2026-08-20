@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import {
   View,
   Text,
+  useWindowDimensions,
   TextInput,
   TouchableOpacity,
   StyleSheet,
@@ -15,7 +16,7 @@ import {
 } from 'react-native'
 import { colors, fonts } from '../theme'
 import { isLikelyToken } from '../utils/helpers'
-import { setStoredAuth, getStoredAuth, getLastToken, clearStoredAuth } from '../utils/storage'
+import { setStoredAuth, getStoredAuth, getLastToken } from '../utils/storage'
 import { fetchSemesters, fetchIndex } from '../api/client'
 
 export default function LoginScreen({ navigation }) {
@@ -23,24 +24,12 @@ export default function LoginScreen({ navigation }) {
   const [remember, setRemember] = useState(false)
   const [status, setStatus] = useState({ message: '', type: '' })
   const [loading, setLoading] = useState(false)
+  const [authReady, setAuthReady] = useState(false)
 
-  useEffect(() => {
-    ;(async () => {
-      const stored = await getStoredAuth()
-      if (stored.remember && stored.token) {
-        setTokenInput(stored.token)
-        setRemember(true)
-      } else {
-        const last = await getLastToken()
-        if (last) {
-          setTokenInput(last)
-        }
-      }
-    })()
-  }, [])
+  const { width } = useWindowDimensions()
 
-  const handleLogin = async () => {
-    const authToken = tokenInput.trim()
+  const handleLogin = async (inputToken = tokenInput, rememberFlag = remember, isAuto = false) => {
+    const authToken = inputToken.trim()
     if (!isLikelyToken(authToken)) {
       setStatus({
         message: 'Введите валидный токен (обычно 36-40 символов).',
@@ -50,7 +39,7 @@ export default function LoginScreen({ navigation }) {
     }
 
     setLoading(true)
-    setStatus({ message: 'Проверка токена...', type: '' })
+    if (!isAuto) setStatus({ message: 'Проверка токена...', type: '' })
 
     try {
       const json = await fetchSemesters(authToken)
@@ -65,14 +54,35 @@ export default function LoginScreen({ navigation }) {
       const semesterID = String(list[0].ID)
       await fetchIndex(authToken, semesterID)
 
-      await setStoredAuth(authToken, remember)
+      await setStoredAuth(authToken, rememberFlag)
 
       navigation.replace('Main', { token: authToken, semesterID })
     } catch (err) {
-      setStatus({ message: `Ошибка входа: ${err.message}`, type: 'error' })
+      setStatus({
+        message: isAuto ? 'Не удалось автоматически войти. Проверьте токен.' : `Ошибка входа: ${err.message}`,
+        type: 'error',
+      })
     } finally {
       setLoading(false)
     }
+  }
+
+  useEffect(() => {
+    ;(async () => {
+      const stored = await getStoredAuth()
+      const tokenToShow = stored.token || await getLastToken()
+      if (tokenToShow) setTokenInput(tokenToShow)
+      if (stored.remember && stored.token) {
+        setRemember(true)
+        setStatus({ message: 'Выполняется автоматический вход...', type: '' })
+        await handleLogin(stored.token, true, true)
+      }
+      setAuthReady(true)
+    })()
+  }, [])
+
+  if (!authReady) {
+    return <View style={styles.root} />
   }
 
   return (
@@ -81,11 +91,11 @@ export default function LoginScreen({ navigation }) {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.paper} />
       <ScrollView
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={[styles.scroll, width < 380 && styles.scrollNarrow]}
         keyboardShouldPersistTaps="handled">
-        <View style={styles.card}>
+        <View style={[styles.card, width < 380 && styles.cardCompact]}>
           <Text style={styles.kicker}>БРС ЮФУ</Text>
-          <Text style={styles.title}>Сервис БРС ЮФУ</Text>
+          <Text style={[styles.title, width < 380 && styles.titleCompact]}>Сервис БРС ЮФУ</Text>
           <Text style={styles.lead}>
             Когда мне предложили купить проигрывать, я отказался,
             ведь мне нужен только выигрыватель.
@@ -168,6 +178,12 @@ const styles = StyleSheet.create({
     borderColor: colors.rule,
     padding: 28,
   },
+  cardCompact: {
+    padding: 20,
+  },
+  scrollNarrow: {
+    paddingHorizontal: 14,
+  },
   kicker: {
     fontSize: 11,
     fontWeight: '600',
@@ -183,6 +199,10 @@ const styles = StyleSheet.create({
     color: colors.ink,
     marginBottom: 12,
     lineHeight: 34,
+  },
+  titleCompact: {
+    fontSize: 28,
+    lineHeight: 31,
   },
   lead: {
     fontSize: 14,
@@ -216,12 +236,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   switchRow: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
   rememberText: {
+    flex: 1,
     fontSize: 13,
+    lineHeight: 18,
     color: colors.inkSoft,
   },
   loginBtn: {

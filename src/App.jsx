@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from "react"
 import { ENDPOINTS, fetchJson } from "./api/client"
-import { getStoredAuth, setStoredAuth, clearStoredAuth, isLikelyToken } from "./utils/storage"
+import { getStoredAuth, setStoredAuth, isLikelyToken } from "./utils/storage"
 import { getIndexTeachersForDiscipline } from "./utils/formatters"
 import LoginView from "./views/LoginView"
 import DashboardView from "./views/DashboardView"
+import ConfirmDialog from "./components/ConfirmDialog"
 
 const INITIAL_REQUEST = {
     semesters: "idle",
@@ -19,6 +20,8 @@ export default function App() {
     const [view, setView] = useState("login")
     const [mainNav, setMainNav] = useState("disciplines") // "disciplines" | "events"
     const [loginStatus, setLoginStatus] = useState({ message: "", type: "" })
+    const [confirmLogoutOpen, setConfirmLogoutOpen] = useState(false)
+    const [authReady, setAuthReady] = useState(false)
 
     const [semesters, setSemesters] = useState([])
     const [currentSemesterID, setCurrentSemesterID] = useState("")
@@ -160,13 +163,13 @@ export default function App() {
     const runLogin = async (authToken, rememberFlag, isAuto = false) => {
         setToken(authToken)
         setRemember(rememberFlag)
-        setStoredAuth(authToken, rememberFlag)
         if (!isAuto) {
             setLoginStatus({ message: "Проверка токена...", type: "" })
         }
 
         try {
             await loadDashboardData(authToken)
+            setStoredAuth(authToken, rememberFlag)
             setView("dashboard")
             setLoginStatus({ message: "", type: "" })
         } catch (error) {
@@ -190,10 +193,15 @@ export default function App() {
     }
 
     const handleLogout = () => {
-        clearStoredAuth()
-        setTokenInput("")
+        setConfirmLogoutOpen(true)
+    }
+
+    const confirmLogout = () => {
+        const storedAuth = getStoredAuth()
+        setConfirmLogoutOpen(false)
+        setTokenInput(storedAuth.token || tokenInput)
         setToken("")
-        setRemember(false)
+        setRemember(Boolean(storedAuth.token && storedAuth.remember))
         setSemesters([])
         setCurrentSemesterID("")
         setRecordbookID("")
@@ -202,7 +210,6 @@ export default function App() {
         setTeachersMap({})
         setSelectedDisciplineID("")
         setGlobalEventsData(null)
-
         setDebugLog({})
         detailCacheRef.current.clear()
         setRequest(INITIAL_REQUEST)
@@ -248,9 +255,18 @@ export default function App() {
 
     useEffect(() => {
         const storedAuth = getStoredAuth()
-        if (storedAuth.token) {
-            setTokenInput(storedAuth.token)
-            setRemember(storedAuth.remember)
+        if (!storedAuth.token) {
+            setAuthReady(true)
+            return
+        }
+
+        setTokenInput(storedAuth.token)
+        setRemember(storedAuth.remember)
+        if (storedAuth.remember) {
+            setLoginStatus({ message: "Выполняется автоматический вход...", type: "" })
+            runLogin(storedAuth.token, true, true).finally(() => setAuthReady(true))
+        } else {
+            setAuthReady(true)
         }
     }, [])
 
@@ -277,7 +293,7 @@ export default function App() {
     return (
         <div>
             <LoginView
-                active={view === "login"}
+                active={view === "login" && authReady}
                 tokenInput={tokenInput}
                 setTokenInput={setTokenInput}
                 remember={remember}
@@ -285,6 +301,14 @@ export default function App() {
                 loginStatus={loginStatus}
                 handleLogin={handleLogin}
                 handlePaste={handlePaste}
+            />
+
+            <ConfirmDialog
+                open={confirmLogoutOpen}
+                title="Выйти из аккаунта?"
+                description="Вы вернётесь на экран входа. Сохранённый токен останется в поле ввода."
+                onCancel={() => setConfirmLogoutOpen(false)}
+                onConfirm={confirmLogout}
             />
 
             <DashboardView
