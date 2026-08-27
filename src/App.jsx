@@ -18,7 +18,7 @@ export default function App() {
     const [token, setToken] = useState("")
     const [remember, setRemember] = useState(false)
     const [view, setView] = useState("login")
-    const [mainNav, setMainNav] = useState("disciplines") // "disciplines" | "events"
+    const [mainNav, setMainNav] = useState("disciplines") // "disciplines" | "events" | "schedule"
     const [loginStatus, setLoginStatus] = useState({ message: "", type: "" })
     const [confirmLogoutOpen, setConfirmLogoutOpen] = useState(false)
     const [authReady, setAuthReady] = useState(false)

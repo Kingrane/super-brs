@@ -7,6 +7,7 @@ import TeacherRow from "../components/TeacherRow"
 import JournalTable from "../components/JournalTable"
 import EventsTable from "../components/EventsTable"
 import ModuleCardList from "../components/ModuleCardList"
+import ScheduleView from "../components/ScheduleView"
 import { formatDisciplineType, formatSemesterLabel, getGradePresentation, parseEventsData } from "../utils/formatters"
 
 export default function DashboardView({
@@ -225,7 +226,7 @@ export default function DashboardView({
             </header>
 
             <section className="toolbar card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <div className="main-nav" style={{ display: 'flex', gap: '0.5rem' }}>
                     <button
                         type="button"
                         className={`btn ${mainNav === "disciplines" ? "btn-primary" : "btn-ghost"}`}
@@ -246,9 +247,19 @@ export default function DashboardView({
                     >
                         История событий
                     </button>
+                    <button
+                        type="button"
+                        className={`btn btn-schedule-nav ${mainNav === "schedule" ? "btn-primary" : "btn-ghost"}`}
+                        onClick={() => {
+                            setMainNav("schedule")
+                            setMobileView("list")
+                        }}
+                    >
+                        Расписание
+                    </button>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div className="main-toolbar-right" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <label className="field field-inline" style={{ margin: 0 }}>
                         <span>Семестр</span>
                         <select className="input select" value={currentSemesterID} onChange={handleSemesterChange}>
@@ -320,6 +331,10 @@ export default function DashboardView({
                             </div>
                         </article>
                     </section>
+                </main>
+            ) : mainNav === "schedule" ? (
+                <main className="dashboard-schedule-view">
+                    <ScheduleView />
                 </main>
             ) : (
                 <main className="dashboard-events-view">
