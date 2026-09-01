@@ -1,434 +1,250 @@
-# Agent Guidelines for brs-test
+# Agent Guidelines for brs-test (super-brs)
 
-## Mission
+## Что это за репозиторий
 
-This repository is an API-first web client for SFEDU BRS (`grade.sfedu.ru`) with:
+API-first клиент Балльно-рейтинговой системы ЮФУ (`grade.sfedu.ru`) + расписание (`schedule.sfedu.ru`).
 
-- local runtime via Express (`server.js` + `public/*`)
-- deploy runtime via Vercel serverless handlers (`api/*`)
-- native Android app via React Native (`BRSApp/*`)
+Три рантайма:
 
-Primary mission for any contributor/agent:
+| Слой | Локально | Продакшен (Vercel) |
+| ---- | -------- | ------------------ |
+| Web UI | Vite + React 19, dev на `localhost:3000` | статика из `dist/` |
+| API-прокси | Express (`server.js`), порт 3000 | serverless-функции из `api/*` |
+| Mobile | Expo SDK 54 (Android/iOS) | APK через EAS Build |
 
-1. Keep API behavior consistent across local and Vercel runtimes.
-2. Preserve upstream compatibility (proxy-style behavior, no lossy transformations).
-3. Keep the frontend resilient, responsive, and production-like.
-4. Improve design quality without reducing readability/accessibility.
+Живой деплой: `https://super-brs.vercel.app` (см. `README.md`).
+
+Primary mission:
+
+1. Сохранять единое поведение API между локальным Express и Vercel serverless.
+2. Не ломать upstream-совместимость (прокси, никаких lossy-преобразований).
+3. Держать фронтенд отзывчивым и production-like.
+4. Улучшать дизайн без потери читабельности/доступности.
 
 ---
 
-## Current Architecture
+## Карта репозитория
 
 ```text
-api/
-  _gradeFetch.js               # upstream fetch with timeout + user-agent
-  _http.js                     # shared HTTP helpers (error + passthrough)
-  _studentApi.js               # student proxy helpers + query validation
+index.html                     # Вход Vite-приложения (ссылается на /src/main.jsx и /styles.css)
+vite.config.js                 # плагин react, dev-порт 5173, proxy /api -> :3000
+server.js                      # Express: монтирует api/* хендлеры + отдаёт dist/ ИЛИ Vite middleware
+vercel.json                    # buildCommand: npm run build, outputDirectory: dist
+
+api/                           # serverless-хендлеры (Vercel) + общие помощники
+  _gradeFetch.js               # upstream grade.sfedu.ru: undici, SSL-bypass, таймаут 12s, user-agent
+  _http.js                     # sendError / requireMethod / passThroughJson
+  _studentApi.js               # buildQuery / validateToken / validateId / proxyStudentEndpoint
+  test.js                      # мусор: тривиальный "Hello from API!" (не используется)
+  public/index.html            # мусор: легаси-демо "Grades — Student" (не используется)
   student/
-    semester_list.js           # GET /api/student/semester_list
-    index.js                   # GET /api/student/index
+    semester_list.js           # GET /api/student/semester_list?token=
+    index.js                   # GET /api/student/index?token=&SemesterID=
+    events.js                  # реэкспорт discipline/events.js (для /api/student/events)
     discipline/
-      journal.js               # GET /api/student/discipline/journal
-      subject.js               # GET /api/student/discipline/subject
-      events.js                # GET /api/student/discipline/events
+      journal.js               # GET /api/student/discipline/journal?token=&id=
+      subject.js               # GET /api/student/discipline/subject?token=&id=
+      events.js                # /events + /student/events: XML -> JSON (fast-xml-parser)
 
-index.html                     # Vite main HTML entry
-vite.config.js                 # Vite bundler & dev proxy config
-src/
-  main.jsx                     # React 18 root mount
-  App.jsx                      # Main app state & navigation router
-  api/client.js                # API fetch helpers (semesters, index, journal, subject, events)
+src/                           # ВЕБ-ФРОНТЕНД (Vite + React 19, JSX)
+  main.jsx                     # React root mount (StrictMode)
+  App.jsx                      # auth-поток, состояние, навигация views, кэш деталей (useRef Map)
+  api/
+    client.js                  # ENDPOINTS (/api/student/*) + fetchJson с debug-логом
+    schedule.js                # schedule.sfedu.ru ПРЯМО из браузера (без прокси), in-memory кэш
   utils/
-    formatters.js              # Grade calculations, teacher name formatting, events parser
-    storage.js                 # LocalStorage auth persistence wrapper
-  components/
-    StateLoading.jsx           # Loading skeleton
-    StateEmpty.jsx             # Empty state
-    StateError.jsx             # Error state with retry
-    DisciplineCard.jsx         # Discipline item in list
-    TeacherRow.jsx             # Teacher row
-    JournalTable.jsx           # Scrollable journal table
-    EventsTable.jsx            # Discipline event history table
-    ModuleCardList.jsx         # Module cards & total grade calculation
+    formatters.js              # оценки/проценты/типы дисциплин, имена преподавателей, парсер событий
+    storage.js                 # localStorage auth (grade_token / grade_remember)
+    schedule.js                # дни/слоты, parseTimeslot, mergeScheduleData, groupByDay, filterByWeek
   views/
-    LoginView.jsx              # Token auth screen
-    DashboardView.jsx          # Dashboard with 5 tabs (Grade, Journal, History, Modules, Teachers)
+    LoginView.jsx              # экран входа по токену (+кнопка вставки из буфера)
+    DashboardView.jsx          # mainNav: disciplines | events | schedule; тулбар с семестром;
+                               # master-detail на мобиле; 4 вкладки (Оценка/Журнал/Модули/Преподаватели); debug-панель
+  components/
+    StateLoading.jsx / StateEmpty.jsx / StateError.jsx   # обязательные UX-состояния
+    DisciplineCard.jsx         # карточка дисциплины в списке
+    TeacherRow.jsx             # строка преподавателя
+    JournalTable.jsx           # журнал (таблица)
+    EventsTable.jsx            # история событий дисциплины
+    ModuleCardList.jsx         # модули + итоговая оценка
+    ConfirmDialog.jsx          # диалог подтверждения (выход)
+    ScheduleView.jsx           # расписание: курс -> группа -> неделя, колонки дней
+    ScheduleLessonCard.jsx     # карточка пары (время, предмет, преподаватель, аудитория, бейдж недели)
 
-public/
-  styles.css                   # visual system + responsive layout
-  favicon.svg                  # app icon
+public/                        # Vite publicDir (копируется в dist как есть)
+  styles.css                   # ВЕСЬ CSS (тепло-бумажная тема, ~3500 строк)
+  favicon.svg / sfedu.svg      # иконки
+  index.html / app.js          # МУСОР: легаси-приложение на htm/React18 (не используется)
 
-server.js                      # Express app that mounts same handlers from api/*
-package.json                   # scripts (start/dev)
-vercel.json                    # Vercel static settings
-
-BRSApp/                        # React Native mobile app (Android)
-  index.js                     # entry point
-  App.tsx                      # root component
+BRSApp/                        # МОБИЛЬНОЕ ПРИЛОЖЕНИЕ (Expo SDK 54, React Native 0.81)
+  App.js                       # SafeAreaProvider + NavigationContainer + Stack (Login -> Main -> Detail)
+  index.js                     # AppRegistry entry
+  app.json                     # Expo config (имя, иконки, package com.brs.sfedu, projectId)
+  eas.json                     # EAS Build profile (preview -> APK)
   src/
-    api/client.js              # API fetch layer (same endpoints)
-    utils/storage.js            # AsyncStorage wrapper
-    utils/helpers.js            # shared helpers (formatting, validation)
-    theme/index.js              # design tokens (colors, fonts, spacing)
-    components/
-      StateLoading.js           # loading skeleton
-      StateEmpty.js             # empty state
-      StateError.js             # error state with retry
-      GradeBadge.js             # grade chip (colored by tone)
-      DisciplineCard.js         # discipline in list
-      TeacherRow.js             # teacher avatar + name
-      ModuleCard.js             # module with submodules
-      JournalTable.js           # scrollable journal table
-      SemesterPicker.js         # semester chip selector
-    screens/
-      LoginScreen.js            # token entry + remember + auto-login
-      DashboardScreen.js        # semester picker + discipline list
-      DetailScreen.js           # tabs: grade, journal, modules, teachers
-    navigation/
-      AppNavigator.js           # Stack navigator (Login → Main → Detail)
-  android/                      # native Android project (generated)
-  ios/                          # native iOS project (generated)
+    api/client.js              # fetchJson к grade.sfedu.ru НАПРЯМУЮ (API_V1 /api/v1/student, events /api/v0/events + XML)
+    utils/storage.js           # AsyncStorage auth
+    utils/cache.js             # кэш деталей дисциплины
+    utils/helpers.js           # форматирование, валидация токена, парсер событий (parseEventsData)
+    theme/index.js             # дизайн-токены (цвета/шрифты/отступы)
+    components/                # StateLoading/Empty/Error, GradeBadge, DisciplineCard, TeacherRow,
+                               # ModuleCard, JournalTable, SemesterPicker, EventCard
+    screens/                   # LoginScreen, DashboardScreen, DetailScreen (5 вкладок, включая История)
+    navigation/AppNavigator.js # (легаси-путь; фактически стэк объявлен в App.js)
 ```
 
-### Frontend: React SPA (Web)
-
-- **Stack**: React 18 + htm (JSX-like via template literals) + ReactDOM
-- **Import**: ESM from CDN (`esm.sh/react@18`, `esm.sh/react-dom@18`, `esm.sh/htm@3`)
-- **Build**: None required — runs directly in browser as ESM module
-- **File structure**: All React code in single `public/app.js`
-- **Styling**: Vanilla CSS in `public/styles.css` (no CSS-in-JS)
-- **State**: React hooks (`useState`, `useMemo`, `useEffect`, `useRef`)
-
-### Mobile: React Native (Android)
-
-- **Stack**: React Native 0.85 + React Navigation
-- **Build**: `npx react-native run-android`
-- **File structure**: Component-based in `BRSApp/src/`
-- **Styling**: `StyleSheet.create()` matching web academic palette
-- **State**: React hooks + AsyncStorage for persistence
-- **API**: Direct fetch to Express backend at `10.0.2.2:3000` (Android emulator)
-
-Key invariant: `server.js` must call handlers from `api/*`, not duplicate endpoint logic.
+> Мусорные файлы (`public/app.js`, `public/index.html`, `api/test.js`, `api/public/index.html`)
+> не удаляю без запроса, но их можно смело игнорировать/удалять — на работу не влияют.
+> `README.md` упоминает Tailwind — враньё, в проекте чистый CSS.
 
 ---
 
-## API Documentation Coverage Target
+## Backend / API-контракт
 
-Base docs: `https://grade.sfedu.ru/restapi/`
+### Методы и валидация
 
-Student-facing endpoints to support at minimum:
+- Каждый хендлер вызывает `requireMethod(req, res, "GET")`.
+- Обязательные query-параметры валидируются до upstream-запроса.
+- `validateToken` намеренно мягкий (мин. длина 16 симв.) — формат токена может отличаться.
+- `events.js` принимает токен и из `x-auth-token` заголовка, и из query.
 
-- `GET /api/v1/student/semester_list`
-- `GET /api/v1/student`
-- `GET /api/v1/student/discipline/journal`
-- `GET /api/v1/student/discipline/subject`
-
-When adding new functionality, follow this policy:
-
-1. Add serverless handler in `api/student/**`.
-2. Reuse shared helpers (`_studentApi.js`, `_http.js`, `_gradeFetch.js`).
-3. Mount in `server.js` via `app.all` + adapter.
-4. Add frontend consumer only after endpoint works in both runtimes.
-
----
-
-## Backend Contract Rules
-
-### Methods and Validation
-
-- Every handler must enforce method via `requireMethod(req, res, "GET")` (or needed method).
-- Required query params must be validated before upstream calls.
-- Token validation is intentionally tolerant (minimum length check) because token format may vary by environment.
-
-### Error Response Format
-
-Always return:
+### Формат ошибок
 
 ```json
-{
-  "error": "Human readable message",
-  "details": "Optional technical details"
-}
+{ "error": "Human readable", "details": "Optional technical" }
 ```
 
-Status codes:
+- `400` — невалидные/отсутствующие параметры
+- `405` — метод не разрешён
+- `502` — upstream timeout/сеть/транспорт
 
-- `400` invalid/missing request params
-- `405` method not allowed
-- `502` upstream timeout/network failure/transport issue
+### Upstream pass-through
 
-### Upstream Pass-through
+- Прокидываем статус, тело и `content-type` апстрима как есть (без lossy-преобразований).
+- Единственное исключение: `events.js` парсит XML в JSON (fallback на pass-through, если не распарсилось).
 
-- Keep upstream status code.
-- Keep upstream body as-is.
-- Preserve upstream `content-type` when available.
+### Сеть
 
-### Network/Timeout Requirements
+- `_gradeFetch.js`: таймаут `12_000` ms через `AbortController`, header `user-agent`.
+- SSL-bypass (undici `Agent` с `rejectUnauthorized: false`) применён только к `grade.sfedu.ru` —
+  у апстрима периодически слетает сертификат (оборванная цепочка). Подробности ниже.
 
-- Use `AbortController` timeout in upstream requests.
-- Timeout stays at `12_000` ms unless explicitly changed.
-- Keep `user-agent` header in upstream requests.
+### Таблица эндпоинтов (локально и на Vercel)
 
----
-
-## Frontend Product Rules
-
-### UX States (Mandatory)
-
-Each async block must support:
-
-- loading skeleton
-- empty state
-- error state with retry action
-- success state
-
-### Data Flow
-
-- Token/session state in memory + localStorage (web) / AsyncStorage (mobile) (`remember` mode).
-- Semesters and discipline index are loaded first.
-- Discipline details loaded per discipline.
-
-### Rendering Requirements
-
-- Discipline list must be interactive and keyboard-safe.
-- Tabs must work without layout shift.
-- Debug panel should remain available for troubleshooting API response shapes.
-
-### Language and Domain Copy
-
-- UI copy should be Russian-first.
-- Domain naming should prefer `БРС ЮФУ` over generic English labels.
-- Discipline types should be localized in UI:
-  - `exam` -> `Экзамен`
-  - `credit` -> `Зачет`
-  - `difftest` -> `Дифференцированный зачет`
-  - `coursework` -> `Курсовая работа`
-  - `practice` -> `Практика`
-
-### Grades/Progress Display Policy
-
-- Primary badge should show percentage where possible (`Rate / MaxCurrentRate`).
-- Keep color semantics consistent:
-  - excellent / good / mid / bad / muted
-- If percentage cannot be computed, fallback to normalized mapping from known marks.
+| Эндпоинт | Параметры | Upstream |
+| -------- | --------- | -------- |
+| `/api/student/semester_list` | `token` | `/api/v1/student/semester_list` |
+| `/api/student/index` | `token`, `SemesterID` | `/api/v1/student` |
+| `/api/student/discipline/journal` | `token`, `id` | `/api/v1/student/discipline/journal` |
+| `/api/student/discipline/subject` | `token`, `id` | `/api/v1/student/discipline/subject` |
+| `/api/student/discipline/events` | `token`, `id`, `recordbookID`, `semesterID` | `/api/v1/../v0/events` (fallback `/student/events`) |
+| `/api/student/events` | то же | то же (реэкспорт events.js) |
 
 ---
 
-## Visual System Rules
+## Web-фронтенд: как устроен
 
-Current visual direction:
+- **Стек**: Vite 8 + `@vitejs/plugin-react`, React 19, JSX. Без сборки-плагинов CSS — vanilla CSS.
+- **Вход**: корневой `index.html` → `src/main.jsx` → `src/App.jsx`. Стили подключены `<link rel="stylesheet" href="/styles.css">` (файл лежит в `public/`).
+- **Данные**: `fetchJson` из `src/api/client.js` ходит на относительные `/api/student/*` —
+  локально их отдаёт Express (тот же хендлер, что на Vercel), в проде — serverless.
+- **Расписание** (`src/api/schedule.js`): запросы идут **прямо из браузера** на `https://schedule.sfedu.ru/APIv1`
+  (`grade/list`, `group/forGrade/{id}`, `schedule/group/{id}`, `time/list`), бэкенд-прокси НЕ участвует.
+  В `ScheduleView.jsx` выбранные курс/группа запоминаются в localStorage (`schedule_grade_id`, `schedule_group_id`),
+  а фильтр недели (Все недели/Верхняя/Нижняя) по умолчанию `all` и **не** персистится.
+- **Кэш**: детали дисциплины кэшируются в `useRef(new Map())` по ключу `semesterID:disciplineID` (`App.jsx`);
+  расписание кэшируется in-memory promise-кэшем в `src/api/schedule.js`.
+- **UX-состояния**: каждый асинхронный блок обязан иметь loading/empty/error+retry/success.
 
-- warm academic paper aesthetic (brownish paper tones, serif display font)
-- dark ink + single accent (oxblood `#8A2417`)
-- compact, service-like density (no oversized decorative blocks)
+### Ключевые правила фронта
 
-Do:
-
-- preserve clear hierarchy and spacing rhythm
-- keep responsive behavior stable (mobile first fallback)
-- maintain readable contrast and visible focus states
-
-Do not:
-
-- switch to random palette/theme each change
-- introduce visual noise that reduces clarity
-- break desktop/mobile parity of key actions
+- UI-копия — русский, домен «БРС ЮФУ».
+- Типы дисциплин локализованы: `exam`→Экзамен, `credit`→Зачет, `difftest`→Дифференцированный зачет,
+  `coursework`→Курсовая работа, `practice`→Практика.
+- Оценка: процент `Rate / MaxCurrentRate`; цвета excellent/good/mid/bad/muted.
+- Список дисциплин интерактивен и keyboard-safe; вкладки без layout-shift; debug-панель остаётся.
 
 ---
 
-## Runtime and Scripts
+## Визуальная система
+
+- Тёплый «бумажный» академический стиль (серые/коричневые тона, serif-дисплейный шрифт).
+- Тёмные чернила + единственный акцент oxblood `#8A2417`.
+- Компактная плотность, сервисный вид, без декоративных блоков.
+- Респонсив: мобильный breakpoint `max-width: 768px` (master-detail для дисциплин, расписание
+  переключается в колонки/стек). Основной CSS-файл `public/styles.css`.
+
+---
+
+## Скрипты
 
 ### Web
 
-- `npm start` -> `node server.js` (Express, port 3000)
-- `npm run dev` -> `node server.js`
+- `npm start` / `npm run dev` → `node server.js` (Express, порт 3000)
+- `npm run build` → `vite build` → `dist/`
+- `npx vite` (отдельно) → порт 5173 с proxy `/api` → `:3000`
+
+> **Footgun:** `node server.js` отдаёт `dist/`, ЕСЛИ он существует (server.js:44). Пока `dist/` на диске есть,
+> правки в `src/` и `public/` НЕ подхватятся без `npm run build`. Если нужен живой dev — удалить `dist/`
+> или запускать `vite` напрямую. При конфликте порта `EADDRINUSE` — убить процесс или задать `PORT`.
 
 ### Mobile (BRSApp/)
 
-- `npx expo start` -> запуск Metro + QR код для Expo Go
-- `npx eas-cli@latest build --platform android --profile preview` -> сборка APK в облаке
+- `npx expo start` — Metro + QR для Expo Go
+- `npx eas-cli@latest build --platform android --profile preview` — сборка APK в облаке. **НЕ ЗАПУСКАТЬ БЕЗ ЯВНОГО СПРОСА.**
 
-Notes:
-
-- В локальной разработке порты могут конфликтовать (`EADDRINUSE`); убить процесс или поставить `PORT`.
-- Vercel deploy использует `api/*` serverless handlers как источник API-поведения.
-- Mobile приложение стучится напрямую к `grade.sfedu.ru`, **Express не нужен**.
-- Для сборки APK требуется Expo аккаунт (бесплатно, 30 сборок/мес).
+Мобилка ходит напрямую к `grade.sfedu.ru`, Express ей не нужен. Для сборки APK нужен Expo-аккаунт.
 
 ---
 
-## Quality Checklist Before Finishing Any Task
+## SSL-bypass для grade.sfedu.ru (веб)
+
+У апстрима периодически слетает SSL-сертификат (`UNABLE_TO_VERIFY_LEAF_SIGNATURE`), отсюда `fetch failed` / `502`.
+Фикс в `api/_gradeFetch.js` и `api/student/discipline/events.js`: `undici` `Agent` с `connect: { rejectUnauthorized: false }`,
+применяется точечно к запросам к `grade.sfedu.ru`. Зависимость `undici` в `package.json`.
+
+Мобильное приложение не затронуто (ходит напрямую, свой платформенный SSL).
+
+Проверка фикса: `node server.js` + запрос `/api/student/semester_list?token=...` должен вернуть ответ апстрима
+(например `403 Token is broken`), а не `502`.
+
+---
+
+## Quality Checklist перед завершением задачи
 
 Backend:
-
-- [ ] Handler exists in `api/*` and uses shared helpers.
-- [ ] `server.js` route is mounted for local runtime.
-- [ ] Method + params + error schema verified.
-- [ ] Upstream status/body/content-type passthrough preserved.
+- [ ] Хендлер в `api/*` использует общие помощники (`_studentApi.js`, `_http.js`, `_gradeFetch.js`).
+- [ ] `server.js` монтирует маршрут для локального рантайма.
+- [ ] Метод + параметры + схема ошибок соблюдены.
+- [ ] Upstream status/body/content-type pass-through сохранён.
 
 Frontend:
+- [ ] Loading/empty/error/retry состояния на месте.
+- [ ] Мобильный (`<=768px`) и десктоп проверены.
+- [ ] Русская копия и доменные термины консистентны.
+- [ ] Нет console-ошибок от изменённой логики.
 
-- [ ] Loading/empty/error/retry states present.
-- [ ] Mobile layout checked (`<=768px`) and desktop checked.
-- [ ] Russian copy and domain terms are consistent.
-- [ ] No console errors from changed logic.
-
-Project:
-
-- [ ] `node --check` passes for edited JS files.
-- [ ] `git status --short` reviewed for accidental artifacts.
-- [ ] AGENTS.md updated if architecture/contracts changed.
+Проект:
+- [ ] `node --check` для файлов `api/*` (чистый JS).
+- [ ] Для JSX-файлов `src/*` — сборка `npm run build` проходит без ошибок.
+- [ ] `git status --short` просмотрен на случайные артефакты.
+- [ ] AGENTS.md обновлён, если изменились архитектура/контракты.
 
 ---
 
 ## Change Management Policy
 
-When updating this repo, avoid hidden drift:
+1. Если меняется контракт эндпоинта — обнови AGENTS.md и ожидания фронтенда.
+2. Если меняется UI-поведение — предусмотри fallback на неполную форму ответа API.
+3. Новый эндпоинт — подключай и в serverless (`api/*`), и в локальный Express (`server.js`).
 
-1. If endpoint contract changes, update `AGENTS.md` and frontend expectations.
-2. If UI behavior changes, ensure fallback for incomplete API response shape.
-3. If a new endpoint is added, wire it in both serverless and local Express path.
-
-Use small, verifiable increments. Prefer correctness and stability over flashy rewrites.
+Небольшие проверяемые инкременты. Корректность и стабильность важнее флеш-переписок.
 
 ---
 
-## React Native Migration
+## Поведение агента
 
-### Status: ✅ MIGRATED (Expo)
-
-React Native (Expo SDK 56) project in `BRSApp/`. Стучится напрямую к `grade.sfedu.ru` — **backend не нужен**.
-
-### Architecture
-
-```
-BRSApp/
-  App.js                       # Root: SafeAreaProvider + Navigator
-  index.js                     # AppRegistry entry
-  app.json                     # Expo config (name, icons, android package)
-  eas.json                     # EAS Build profiles (preview → APK)
-  src/
-    api/client.js              # fetchJson → grade.sfedu.ru (direct, no proxy)
-    utils/storage.js           # getStoredAuth, setStoredAuth, clearStoredAuth (AsyncStorage)
-    utils/helpers.js           # isLikelyToken, formatDisciplineType, formatTeacherShortName,
-                               # formatSemesterLabel, getGradePresentation, getIndexTeachersForDiscipline
-    theme/index.js             # colors (12 ink/paper/accent/grade tones), fonts, spacing
-    components/
-      StateLoading.js          # animated skeleton shimmer
-      StateEmpty.js            # centered dash + title + desc
-      StateError.js            # red left border, title, desc, retry button
-      GradeBadge.js            # colored border + text by tone (excellent/good/mid/bad/muted)
-      DisciplineCard.js        # title, grade badge, type, points, teachers preview
-      TeacherRow.js            # avatar initials + full name + position
-      ModuleCard.js            # module title + submodule list with rates
-      JournalTable.js          # horizontal scroll table: date, type, topic, mark, attendance
-      SemesterPicker.js        # semester chips in a flex-wrap row
-    screens/
-      LoginScreen.js           # token input, remember switch, auto-login
-      DashboardScreen.js       # semester picker + discipline FlatList
-      DetailScreen.js          # 4-tab detail view (grade/journal/modules/teachers)
-    navigation/
-      AppNavigator.js          # NativeStack: Login → Main → Detail
-```
-
-### Key Technical Decisions
-
-| Area             | Decision                                                     |
-| ---------------- | ------------------------------------------------------------ |
-| Framework        | Expo SDK 56 + React Native                                   |
-| Navigation       | @react-navigation/native-stack (3 screens)                   |
-| Persistence      | @react-native-async-storage/async-storage                    |
-| API target       | `https://grade.sfedu.ru/api/v1/student` (direct, no backend) |
-| Design tokens    | Ported from CSS variables → JS object                        |
-| State per screen | Each screen owns its data (no global store)                  |
-| Build            | EAS Build (cloud), no Android Studio required                |
-
-### Что переписано из web-версии
-
-| Компонент     | Web                          | Mobile                                         |
-| ------------- | ---------------------------- | ---------------------------------------------- |
-| UI фреймворк  | React 18 + htm               | Expo SDK 56                                    |
-| Навигация     | Browser routing (views)      | React Navigation Stack                         |
-| Стилизация    | CSS (styles.css, 3237 строк) | StyleSheet.create()                            |
-| Компоненты    | div/span/button/table        | View/Text/TouchableOpacity/FlatList/ScrollView |
-| Хранение      | localStorage                 | AsyncStorage                                   |
-| Тема          | CSS custom properties        | JS объект (theme/index.js)                     |
-| Семестры      | select element               | touchable chips                                |
-| Дисциплины    | div list with counter        | FlatList + DisciplineCard                      |
-| Журнал        | HTML table                   | ScrollView horizontal                          |
-| Модули        | article cards                | View-based ModuleCard                          |
-| Преподаватели | div rows with avatar         | View-based TeacherRow                          |
-| Backend       | Express (proxy)              | Не нужен                                       |
-
-### Available Scripts
-
-```bash
-cd BRSApp
-
-# Запуск на телефоне (USB)
-npx expo start
-# Отсканировать QR код через Expo Go
-
-# Сборка APK в облаке (без Android Studio)
-npx eas-cli@latest build --platform android --profile preview
-```
-
-### Как собрать APK для одногруппников
-
-1. Регистрация: https://expo.dev/signup (бесплатно, 30 сборок/мес)
-2. Войти в EAS: `npx eas-cli@latest login`
-3. Настроить проект: `npx eas-cli@latest build:configure`
-4. Собрать APK: `npx eas-cli@latest build --platform android --profile preview`
-5. Ссылка на APK появится в консоли → кидаешь в Telegram
-
-### Prerequisites
-
-1. Node.js ≥ 18
-2. Expo аккаунт (бесплатный)
-3. Телефон Android с USB-отладкой (для теста)
-   ИЛИ просто собрать APK и скинуть (для одногруппников)
-
-### API Configuration
-
-App стучится напрямую к `https://grade.sfedu.ru/api/v1/student/`.
-Никакого backend запускать не нужно. Работает из коробки.
-Токен для тестов (мой личный) aa299bd59ad6e0e0e1bf564e346477592fee2e1e
-
----
-
-## SSL Bypass для upstream (grade.sfedu.ru)
-
-### Что случилось
-
-У `grade.sfedu.ru` периодически слетает SSL-сертификат (оборванная цепочка →
-`UNABLE_TO_VERIFY_LEAF_SIGNATURE`). `curl` это прощает, а `fetch` в Node/Vercel/RN —
-нет, отсюда `fetch failed` и `502 Upstream request failed` во всём вебе.
-
-### Что сделано (только веб)
-
-- `api/_gradeFetch.js`: добавлен `undici` `Agent` с `connect: { rejectUnauthorized: false }`,
-  применяется точечно к запросам к `grade.sfedu.ru` через `setGlobalDispatcher`.
-  Остальные HTTPS-соединения не затрагиваются.
-- `api/student/discipline/events.js`: то же (ходит к `grade.sfedu.ru` напрямую, минуя `gradeFetch`).
-- `package.json`: добавлена зависимость `undici@^6`.
-- Производительность: `undici Agent` даёт пул keep-alive соединений — накладки нет,
-  скорее лёгкий плюс. Остальная логика/роуты/фронтенд не тронуты.
-
-### Как откатить (если cert починится или фикс не нужен)
-
-1. В `api/_gradeFetch.js` удалить строки:
-   ```js
-   import { Agent, setGlobalDispatcher } from "undici";
-   ...
-   setGlobalDispatcher(new Agent({ connect: { rejectUnauthorized: false } }));
-   ```
-2. В `api/student/discipline/events.js` удалить импорт `undici` и вызов `setGlobalDispatcher`.
-3. `npm uninstall undici`
-4. Задеплоить/пересобрать.
-
-Проверка, что фикс работает: локально `node server.js` + запрос
-`/api/student/semester_list?token=...` должен вернуть HTTP-ответ апстрима
-(например `403 Token is broken`), а не `502`.
-
-> Примечание: мобильное приложение (BRSApp) НЕ затронуто — оно ходит напрямую
-> и чинится отдельно (свой fetch/платформенный SSL).
+- Не трогать чужой код «заодно» (surgical changes); про легаси-мусор — упомянуть, не удалять.
+- Не запускать `eas build`, не пушить в main и не делать merge без явной просьбы.
+- Перед реализацией называть допущения; при неоднозначности — спрашивать.
+- Минимум кода, решающий задачу; без спекулятивных абстракций.

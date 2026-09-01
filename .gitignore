@@ -4,5 +4,7 @@ dist
 nul
 .playwright-mcp
 *.log
-AGENTS.md
 design.md
+.idea
+mobile-nav.png
+webpush.md
