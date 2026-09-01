@@ -18,7 +18,6 @@ import {
 
 const STORAGE_KEY_GRADE = "schedule_grade_id"
 const STORAGE_KEY_GROUP = "schedule_group_id"
-const STORAGE_KEY_WEEK = "schedule_week_type"
 
 const WEEK_OPTIONS = [
     { value: "all", label: "Все недели" },
@@ -49,7 +48,7 @@ export default function ScheduleView() {
     const [groupId, setGroupId] = useState("")
     const [schedule, setSchedule] = useState(null)
     const [timeSlots, setTimeSlots] = useState(DEFAULT_TIME_SLOTS)
-    const [weekType, setWeekType] = useState(() => readStored(STORAGE_KEY_WEEK, "all"))
+    const [weekType, setWeekType] = useState("all")
     const [request, setRequest] = useState("loading")
     const [error, setError] = useState("")
 
@@ -161,7 +160,6 @@ export default function ScheduleView() {
 
     const handleWeekChange = (value) => {
         setWeekType(value)
-        writeStored(STORAGE_KEY_WEEK, value)
     }
 
     const handleRetry = async () => {

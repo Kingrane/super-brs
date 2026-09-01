@@ -1403,6 +1403,7 @@ textarea.input {
 
     .main-nav {
         width: 100%;
+        flex-wrap: wrap;
     }
 
     .main-nav .btn-schedule-nav {
@@ -3458,8 +3459,20 @@ tbody tr:last-child td {
         align-items: stretch;
     }
 
-    .sched-toolbar .btn {
+    .sched-toolbar > .btn {
         width: 100%;
+    }
+
+    .sched-week-toggle {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .sched-week-toggle .btn {
+        flex: 1 1 0;
+        min-width: 0;
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
     }
 
     .sched-picker .field-inline {
