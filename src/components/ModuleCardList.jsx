@@ -98,6 +98,18 @@ export default function ModuleCardList({ subjectInfo, disciplineMap, submodules 
                     <span className="mono">{bonusRate} / {bonusMax}</span>
                 </div>
             )}
+            {isExamType && (String(subjectInfo?.Type || '').toLowerCase() === 'exam' || /экзамен/i.test(String(subjectInfo?.Type || ''))) && (() => {
+                const admissionPoints = regRate + bonusRate
+                const hasAdmission = admissionPoints >= 38
+                return (
+                    <div className="module-admission">
+                        <span>Допуск к экзамену</span>
+                        <span className={`mono ${hasAdmission ? "admission-granted" : "admission-pending"}`}>
+                            {hasAdmission ? "Допущен" : `Не допущен (${admissionPoints} / 38)`}
+                        </span>
+                    </div>
+                )
+            })()}
             {hasExamData && (
                 <div className="module-exam">
                     <span>Экзамен</span>

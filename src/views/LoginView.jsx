@@ -1,4 +1,5 @@
 import React from "react"
+import ThemeToggle from "../components/ThemeToggle"
 
 export default function LoginView({
     tokenInput,
@@ -8,17 +9,24 @@ export default function LoginView({
     loginStatus,
     handleLogin,
     handlePaste,
-    active
+    active,
+    theme,
+    toggleTheme
 }) {
     return (
         <section className={`view ${active ? "view-active" : ""}`.trim()} aria-labelledby="loginTitle">
+            <div className="login-top-bar">
+                <span className="curly-brand">&#123; БРС ЮФУ &#125;</span>
+                <ThemeToggle theme={theme} onToggle={toggleTheme} />
+            </div>
+
             <div className="auth-layout">
                 <aside className="auth-aside">
-                    <p className="kicker">Топ дс брс</p>
+                    <p className="kicker">&#123; Топ дс брс &#125;</p>
                     <h1 id="loginTitle">Сервис БРС ЮФУ</h1>
                     <p className="lead">Когда мне предложили купить проигрыватель, я отказался, ведь мне нужен только выигрыватель.</p>
                     <a className="link-inline" target="_blank" rel="noopener noreferrer" href="https://grade.sfedu.ru/sign?goal=/student/authtokenget">
-                        Получить токен доступа
+                        Получить токен доступа →
                     </a>
                 </aside>
 

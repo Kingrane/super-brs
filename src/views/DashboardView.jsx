@@ -8,6 +8,7 @@ import JournalTable from "../components/JournalTable"
 import EventsTable from "../components/EventsTable"
 import ModuleCardList from "../components/ModuleCardList"
 import ScheduleView from "../components/ScheduleView"
+import ThemeToggle from "../components/ThemeToggle"
 import { formatDisciplineType, formatSemesterLabel, getGradePresentation, parseEventsData } from "../utils/formatters"
 
 export default function DashboardView({
@@ -35,7 +36,9 @@ export default function DashboardView({
     mergedTeachers,
     debugLog,
     handleRefresh,
-    handleLogout
+    handleLogout,
+    theme,
+    toggleTheme
 }) {
     const [mobileView, setMobileView] = React.useState("list")
 
@@ -216,10 +219,11 @@ export default function DashboardView({
         <section className={`view ${active ? "view-active" : ""}`.trim()} aria-label="Панель оценок">
             <header className="topbar">
                 <div>
-                    <p className="kicker">БРС ЮФУ</p>
+                    <p className="kicker">&#123; БРС ЮФУ &#125;</p>
                     <h2>Сервис БРС</h2>
                 </div>
                 <div className="topbar-actions">
+                    <ThemeToggle theme={theme} onToggle={toggleTheme} />
                     <button className="btn btn-ghost" type="button" onClick={handleRefresh}>Обновить</button>
                     <button className="btn btn-danger" type="button" onClick={handleLogout}>Выйти</button>
                 </div>
@@ -286,7 +290,7 @@ export default function DashboardView({
                 <main className={`dashboard-grid ${mobileView === "detail" ? "mobile-view-detail" : "mobile-view-list"}`}>
                     <section className="card panel-list">
                         <div className="panel-head">
-                            <h3>Список дисциплин</h3>
+                            <h3>&#123; Список дисциплин &#125;</h3>
                             <span className="pill">{String(disciplines.length)}</span>
                         </div>
                         <div className="panel-body">{renderDisciplines()}</div>
@@ -340,7 +344,7 @@ export default function DashboardView({
                 <main className="dashboard-events-view">
                     <section className="card">
                         <div className="panel-head">
-                            <h3>История событий</h3>
+                            <h3>&#123; История событий &#125;</h3>
                             <span className="pill">{String(parsedGlobalEvents.length)}</span>
                         </div>
                         <div className="panel-body">

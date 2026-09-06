@@ -14,6 +14,27 @@ const INITIAL_REQUEST = {
 }
 
 export default function App() {
+    const [theme, setTheme] = useState(() => {
+        try {
+            return localStorage.getItem("super_brs_theme") || "light"
+        } catch {
+            return "light"
+        }
+    })
+
+    useEffect(() => {
+        try {
+            localStorage.setItem("super_brs_theme", theme)
+        } catch {
+            // ignore
+        }
+        document.documentElement.setAttribute("data-theme", theme)
+    }, [theme])
+
+    const toggleTheme = () => {
+        setTheme((prev) => (prev === "dark" ? "light" : "dark"))
+    }
+
     const [tokenInput, setTokenInput] = useState("")
     const [token, setToken] = useState("")
     const [remember, setRemember] = useState(false)
@@ -312,6 +333,8 @@ export default function App() {
                 loginStatus={loginStatus}
                 handleLogin={handleLogin}
                 handlePaste={handlePaste}
+                theme={theme}
+                toggleTheme={toggleTheme}
             />
 
             <ConfirmDialog
@@ -348,6 +371,8 @@ export default function App() {
                 debugLog={debugLog}
                 handleRefresh={handleRefresh}
                 handleLogout={handleLogout}
+                theme={theme}
+                toggleTheme={toggleTheme}
             />
         </div>
     )
